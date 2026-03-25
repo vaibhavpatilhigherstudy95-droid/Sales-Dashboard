@@ -461,6 +461,103 @@ svg.udonut circle.useg.seg-dim{
 .univ-filter-x:hover{opacity:1;}
 
 /* ═══════════════════════════════════════════════════════
+   MULTI-LEVEL FILTER BREADCRUMB TRAIL
+═══════════════════════════════════════════════════════ */
+.filter-trail{
+  display:none;align-items:center;gap:0;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;
+  padding:7px 12px;
+  position:relative;z-index:10;
+}
+.filter-trail.show{ display:flex; }
+
+/* "Filters:" label */
+.ft-label{
+  font-size:9px;font-weight:800;letter-spacing:.12em;
+  color:rgba(255,255,255,.25);text-transform:uppercase;
+  margin-right:8px;flex-shrink:0;
+}
+
+/* Each crumb */
+.ft-crumb{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;
+  padding:3px 10px 3px 8px;
+  cursor:pointer;
+  transition:background .15s,border-color .15s,transform .12s;
+  user-select:none;
+  white-space:nowrap;
+}
+.ft-crumb:hover{
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.22);
+  transform:translateY(-1px);
+}
+.ft-crumb-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+}
+.ft-crumb-level{
+  font-size:8px;font-weight:800;letter-spacing:.1em;
+  color:rgba(255,255,255,.3);text-transform:uppercase;
+}
+.ft-crumb-name{
+  font-size:11px;font-weight:800;color:#fff;
+  max-width:90px;overflow:hidden;text-overflow:ellipsis;
+}
+.ft-crumb-x{
+  font-size:11px;color:rgba(255,255,255,.35);
+  margin-left:2px;transition:color .12s;
+  line-height:1;
+}
+.ft-crumb:hover .ft-crumb-x{ color:#fff; }
+
+/* Separator chevron between crumbs */
+.ft-sep{
+  font-size:10px;color:rgba(255,255,255,.2);
+  margin:0 4px;flex-shrink:0;line-height:1;
+  user-select:none;pointer-events:none;
+}
+
+/* Clear-all button */
+.ft-clear{
+  margin-left:auto;
+  font-size:9px;font-weight:800;letter-spacing:.08em;
+  color:rgba(255,255,255,.28);cursor:pointer;
+  padding:3px 8px;border-radius:20px;
+  border:1px solid rgba(255,255,255,.08);
+  background:transparent;
+  transition:color .13s,background .13s,border-color .13s;
+  white-space:nowrap;flex-shrink:0;
+  font-family:var(--font);
+}
+.ft-clear:hover{
+  color:#f87171;
+  background:rgba(248,113,113,.1);
+  border-color:rgba(248,113,113,.3);
+}
+
+/* ── Bars dim/highlight when filtered ── */
+.br.ml-dim{ opacity:.22; pointer-events:none; }
+.br.ml-active .bf{ box-shadow:0 0 0 2px rgba(255,255,255,.35) inset; }
+.br.ml-active{ opacity:1; }
+
+/* ── Active filter glow on card header ── */
+.card.filter-active .card-title::after{
+  content:'';display:inline-block;
+  width:6px;height:6px;border-radius:50%;
+  background:#10b981;margin-left:8px;
+  vertical-align:middle;
+  box-shadow:0 0 6px rgba(16,185,129,.7);
+  animation:pulse 2s infinite;
+}
+
+/* ═══════════════════════════════════════════════════════
    TOP PERFORMERS
 ═══════════════════════════════════════════════════════ */
 .tlist{display:flex;flex-direction:column;gap:10px;}
@@ -1167,6 +1264,12 @@ body.role-manager #mgrIncSection {
       <div class="ts-row"><span class="ts-dot"></span>&nbsp;<span id="t1" style="font-size:10px;font-weight:600;color:rgba(255,255,255,.16)">&#8212;</span></div>
     </div>
     <div class="card univ-card">
+      <!-- Multi-level filter breadcrumb trail -->
+      <div class="filter-trail" id="filterTrail">
+        <span class="ft-label">Filter</span>
+        <div id="ftCrumbs" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex:1;"></div>
+        <button class="ft-clear" id="ftClear">✕ Clear all</button>
+      </div>
       <div class="card-head"><span class="card-title">Process Split</span><span class="card-badge" id="ub-b">&#8212;</span></div>
       <div class="donut-wrap">
         <div class="donut-box">
@@ -2119,9 +2222,12 @@ function render(d, stale, p){
 
   // ── Reset donut + counsellor filters ───────────────
   activeMgr=null; activeTL=null;
+  filterStack=[];
+  _lastDonutHash=''; // force full redraw
   syncBarStates();
   $('univFilterTag').classList.remove('show');
-  updateDonut(d, lastTrendRows);
+  updateDonut(d, d.allTrendRows||d.trendRows||[], false);
+  _renderTrail();
   // Reset counsellor filter tag too
   const cfTag=$('counselFilterTag');
   if(cfTag) cfTag.classList.remove('show');
@@ -2232,66 +2338,53 @@ function ensureDonutSegments(){
   }
 }
 
-// Per-segment data store — keyed by index, used by tooltip + selection
-let _segData = []; // [{name, color, value, pct}]
-let _activeUnivIdx = -1; // -1 = none selected
-
 let _lastDonutHash = '';
-function updateDonut(d,rows){
-  const h=(d.netAdm||0)+'_'+(activeMgr||'')+'_'+(activeTL||'')+'_'+UNIVS.length;
-  if(h===_lastDonutHash && !activeMgr && !activeTL){ ensureDonutSegments(); return; }
+function updateDonut(d, rows, fromStack){
+  const stackSig = filterStack.map(f=>f.key).join('|');
+  const h=(d.netAdm||0)+'_'+(stackSig||'_')+'_'+UNIVS.length;
+  if(h===_lastDonutHash && !fromStack && !filterStack.length){ ensureDonutSegments(); return; }
   _lastDonutHash=h;
   ensureDonutSegments();
 
-  // Reset selection when data changes
-  _activeUnivIdx = -1;
-  _syncDonutSelection();
+  // Only reset visual selection when called fresh (not from stack)
+  if(!fromStack){
+    _activeUnivIdx = -1;
+    _syncDonutSelection();
+  }
 
   const UL=UNIVS.length;
   const uvArr=new Int32Array(UL);
-  const fk=activeMgr||activeTL;
-  const ft=activeMgr?'mgr':'tl';
 
-  if(fk&&rows.length){
-    const fObj=activeMgr?_mgrByKey[fk]:_tlByKey[fk];
-    const fname=fObj?fObj.n.toLowerCase():'';
+  if(fromStack && rows && rows.length){
+    // Count universities from the already-filtered rows
     for(let i=0,L=rows.length;i<L;i++){
       const r=rows[i];
-      if(ft==='tl'){
-        const rTL=(r.tl||'').trim().toLowerCase();
-        const resolved=resolveTL(rTL);
-        if(resolved!==fk) continue;
-      } else {
-        if((r[ft]||'').trim().toLowerCase()!==fname) continue;
-      }
-      const uRaw2=(r.univ||'').toString().trim(); if(!uRaw2) continue;
-      const nk2=uRaw2.toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
-      let hit=false;
-      for(let j=0;j<UL;j++){if(UNIVS[j].k===nk2){uvArr[j]++;hit=true;break;}}
+      const uRaw=(r.univ||'').toString().trim(); if(!uRaw) continue;
+      const nk=uRaw.toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
+      for(let j=0;j<UL;j++){if(UNIVS[j].k===nk){uvArr[j]++;break;}}
     }
-    let sum=0; for(let j=0;j<UL;j++) sum+=uvArr[j];
-    if(sum===0){
-      const ratio=(d[fk]||0)/Math.max(d.netAdm||1,1);
-      for(let j=0;j<UL;j++) uvArr[j]=Math.round((d[UNIVS[j].k]||0)*ratio);
-    }
-  }else{
+  } else {
+    // No filter — show full totals
     for(let j=0;j<UL;j++) uvArr[j]=d[UNIVS[j].k]||0;
   }
 
   let total=0; for(let j=0;j<UL;j++) total+=uvArr[j];
   animCount($('unum'),total);
 
-  const fObj=activeMgr?_mgrByKey[activeMgr]:activeTL?_tlByKey[activeTL]:null;
-  const fName=fObj?fObj.n:'';
+  // Badge and subtitle — read from filterStack, not legacy activeMgr/activeTL
+  const topFilter = filterStack.length ? filterStack[0] : null;
+  const fName = topFilter ? topFilter.name : '';
   let nUnivs=0; for(let j=0;j<UL;j++) if(uvArr[j]>0) nUnivs++;
-  $('ub-b').textContent=(fName?fName+' · ':'')+nUnivs+' UNIVS';
-  $('uSub').textContent=fName?fName+' ADM':'NET ADM';
+  $('ub-b').textContent = filterStack.length
+    ? filterStack.map(f=>f.name).join(' › ')+' · '+nUnivs+' UNIVS'
+    : nUnivs+' UNIVS';
+  $('uSub').textContent = filterStack.length ? fName+' ADM' : 'NET ADM';
 
   // Build _segData and update circles + legend
   _segData = [];
   let off=0;
   const legParts=[];
-  let legIdx=0; // legend index (only for visible segments)
+  let legIdx=0;
 
   for(let j=0;j<UL;j++){
     const u=UNIVS[j],v=uvArr[j];
@@ -2303,7 +2396,6 @@ function updateDonut(d,rows){
       s.setAttribute('stroke-dasharray',arc+' '+DONUT_C);
       s.setAttribute('stroke-dashoffset',-off);
       s.setAttribute('data-idx', String(j));
-      // Hide zero-value segments from interaction
       if(v===0){ s.style.pointerEvents='none'; s.style.opacity='0'; }
       else { s.style.pointerEvents=''; s.style.opacity=''; }
     }
@@ -2326,254 +2418,421 @@ function updateDonut(d,rows){
 }
 
 // ═══════════════════════════════════════════════════════
-// DONUT INTERACTION ENGINE
-// Click segment or legend row → select/deselect university
-// Updates: segment glow, legend dim, center label, counsellor filter, badge
+// MULTI-LEVEL FILTER ENGINE
+// Stack: [{level:'univ'|'mgr'|'tl', key, name, color}]
+// University → Manager → Team Leader — each level drills into the previous
 // ═══════════════════════════════════════════════════════
 
-function _syncDonutSelection(){
-  const idx = _activeUnivIdx;
-  const segs = document.querySelectorAll('svg.udonut circle.useg');
-  const legRows = document.querySelectorAll('#uleg .leg-row');
-  const ctr  = $('donutCtr');
-  const numEl = $('unum');
-  const subEl = $('uSub');
+let filterStack = []; // the active drill-down chain
 
-  if(idx === -1){
-    // Nothing selected — restore all
-    segs.forEach(s=>{ s.classList.remove('seg-active','seg-dim'); });
-    legRows.forEach(r=>{ r.classList.remove('leg-active','leg-dim'); });
-    if(ctr) ctr.classList.remove('has-sel');
-    // Restore total count
-    const cached = mem[activeCk];
-    if(cached && numEl){
-      const total = _segData.reduce((s,d)=>s+(d.value||0),0);
-      animCount(numEl, total);
-      if(subEl) subEl.textContent = (activeMgr||activeTL) ? ((activeMgr?_mgrByKey[activeMgr]:_tlByKey[activeTL])?.n||'')+' ADM' : 'NET ADM';
+// ── Compute filtered rows for any stack depth ──────────
+function _getFilteredRows(){
+  const cached = mem[activeCk]; if(!cached) return [];
+  const allRows = cached.data.allTrendRows || cached.data.trendRows || [];
+  if(!filterStack.length) return allRows;
+  return allRows.filter(r=>{
+    for(const f of filterStack){
+      if(f.level==='univ'){
+        const uRaw=(r.univ||'').toString().trim();
+        const nk=uRaw.toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
+        if(nk!==f.key) return false;
+      } else if(f.level==='mgr'){
+        if((r.mgr||'').trim().toLowerCase()!==f.name.toLowerCase()) return false;
+      } else if(f.level==='tl'){
+        if(resolveTL((r.tl||'').trim().toLowerCase())!==f.key) return false;
+      }
     }
-    $('ub-b').textContent = (() => {
-      const fObj=activeMgr?_mgrByKey[activeMgr]:activeTL?_tlByKey[activeTL]:null;
-      const fName=fObj?fObj.n:'';
-      const nUnivs=_segData.filter(s=>s.visible).length;
-      return (fName?fName+' · ':'')+nUnivs+' UNIVS';
-    })();
+    return true;
+  });
+}
+
+// ── Recompute bar counts from filtered rows ────────────
+function _recomputeBarsFromRows(rows){
+  const cached = mem[activeCk]; if(!cached) return;
+  const d = cached.data;
+
+  // Manager bar counts from filtered rows
+  const mgrCounts = Object.create(null);
+  const tlCounts  = Object.create(null);
+  rows.forEach(r=>{
+    const mk = (r.mgr||'').trim().toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
+    if(mk) mgrCounts[mk]=(mgrCounts[mk]||0)+1;
+    const tk = resolveTL((r.tl||'').trim().toLowerCase());
+    if(tk) tlCounts[tk]=(tlCounts[tk]||0)+1;
+  });
+
+  // Rebuild manager bar UI
+  const maxMgr = Math.max(1,...MGRS.map(m=>mgrCounts[m.k]||0));
+  document.querySelectorAll('[data-mgr]').forEach(row=>{
+    const k=row.dataset.mgr;
+    const v=mgrCounts[k]||0;
+    const bf=row.querySelector('.bf');
+    const bl=row.querySelector('.bl');
+    const bv=row.querySelector('.bv');
+    if(bf) requestAnimationFrame(()=>{ bf.style.transition=''; bf.style.transform=`scaleX(${v/maxMgr})`; });
+    if(bl) bl.textContent=v+' adm';
+    if(bv) bv.textContent=v;
+    // Active/dim/neutral based on stack
+    const mgrInStack = filterStack.find(f=>f.level==='mgr');
+    if(mgrInStack){
+      row.classList.toggle('ml-active', mgrInStack.key===k);
+      row.classList.toggle('ml-dim',   mgrInStack.key!==k);
+    } else {
+      row.classList.remove('ml-active','ml-dim');
+      row.classList.toggle('ml-dim', v===0 && filterStack.length>0);
+    }
+  });
+
+  // Rebuild TL bar UI
+  const maxTL = Math.max(1,...TLS.map(t=>tlCounts[t.k]||0));
+  document.querySelectorAll('[data-tl]').forEach(row=>{
+    const k=row.dataset.tl;
+    const v=tlCounts[k]||0;
+    const bf=row.querySelector('.bf');
+    const bl=row.querySelector('.bl');
+    const bv=row.querySelector('.bv');
+    if(bf) requestAnimationFrame(()=>{ bf.style.transition=''; bf.style.transform=`scaleX(${v/maxTL})`; });
+    if(bl) bl.textContent=v+' adm';
+    if(bv) bv.textContent=v;
+    const tlInStack=filterStack.find(f=>f.level==='tl');
+    if(tlInStack){
+      row.classList.toggle('ml-active', tlInStack.key===k);
+      row.classList.toggle('ml-dim',   tlInStack.key!==k);
+    } else {
+      row.classList.remove('ml-active','ml-dim');
+      row.classList.toggle('ml-dim', v===0 && filterStack.length>0);
+    }
+  });
+
+  // Update the mb-b and tb-b badges
+  const totMgr=Object.values(mgrCounts).reduce((s,v)=>s+v,0);
+  $('mb-b').textContent=totMgr+' ADM';
+  $('tb-b').textContent=totMgr+' ADM';
+
+  // Highlight active cards
+  const mgrCard=$('mb')?.closest('.card');
+  const tlCard=$('tb')?.closest('.card');
+  if(mgrCard) mgrCard.classList.toggle('filter-active', filterStack.some(f=>f.level==='mgr'));
+  if(tlCard)  tlCard.classList.toggle('filter-active',  filterStack.some(f=>f.level==='tl'));
+}
+
+// ── Render the breadcrumb trail ────────────────────────
+function _renderTrail(){
+  const trail=$('filterTrail');
+  const crumbs=$('ftCrumbs');
+  if(!trail||!crumbs) return;
+
+  if(!filterStack.length){
+    trail.classList.remove('show');
+    crumbs.innerHTML='';
+    // Also clear univ card filter-active
+    const univCard=document.querySelector('.univ-card');
+    if(univCard) univCard.classList.remove('filter-active');
+    return;
+  }
+  trail.classList.add('show');
+  document.querySelector('.univ-card')?.classList.add('filter-active');
+
+  const levelLabel={univ:'Univ',mgr:'Mgr',tl:'TL'};
+  crumbs.innerHTML = filterStack.map((f,i)=>{
+    const dot=`<span class="ft-crumb-dot" style="background:${f.color||'#818cf8'}"></span>`;
+    const lbl=`<span class="ft-crumb-level">${levelLabel[f.level]||f.level}</span>`;
+    const nm=`<span class="ft-crumb-name" title="${f.name}">${f.name}</span>`;
+    const x=`<span class="ft-crumb-x">×</span>`;
+    const sep= i<filterStack.length-1 ? `<span class="ft-sep">›</span>` : '';
+    return `<div class="ft-crumb" data-crumb="${i}">${dot}${lbl}${nm}${x}</div>${sep}`;
+  }).join('');
+}
+
+// ── Refresh all 3 incentive leaderboards from a row set ──
+// Called on every filter change so leaderboards always reflect
+// the current Univ → Mgr → TL drill-down context.
+function _refreshIncentives(rows){
+  // Counsellor incentive — rebuild from filtered counsellor data
+  const counselData = buildCounselMap(rows);
+  drawIncLeaderboard(counselData);
+
+  // TL + Manager incentive — pass filtered rows so buildTLIncMap /
+  // buildMgrIncMap re-aggregate incentives within the active filter
+  drawTLIncLeaderboard(rows);
+  drawMgrIncLeaderboard(rows);
+
+  // Re-enforce role-based visibility (draw functions may hide sections)
+  applyRoleVisibility();
+}
+
+// ── Apply the full stack: donut + bars + counsellor + incentives ──
+function _applyStack(){
+  const cached=mem[activeCk]; if(!cached) return;
+  const rows=_getFilteredRows();
+
+  // Always pass filtered rows + fromStack=true so updateDonut
+  // correctly reflects whatever level is active (univ, mgr, or tl).
+  updateDonut(cached.data, rows, true/*fromStack*/);
+
+  // 2. Recompute bars
+  _recomputeBarsFromRows(rows);
+
+  // 3. Counsellor section + all incentive leaderboards
+  const label = filterStack.length ? filterStack.map(f=>f.name).join(' › ') : null;
+  const type  = filterStack.length ? filterStack[filterStack.length-1].level : null;
+  if(label) filterCounselSection(rows, label, type);
+  else      filterCounselSection(rows, null, null);
+
+  // 4. Incentive leaderboards — always refresh from filtered rows
+  _refreshIncentives(rows);
+
+  // 5. Breadcrumb
+  _renderTrail();
+
+  // 6. Sync donut visual selection
+  const univInStack=filterStack.find(f=>f.level==='univ');
+  const univIdx = univInStack ? UNIVS.findIndex(u=>u.k===univInStack.key) : -1;
+  _activeUnivIdx = univIdx;
+  _syncDonutSelection();
+}
+
+// ── Push a new filter level ────────────────────────────
+function _pushFilter(level, key, name, color){
+  // Prevent duplicate at same level — replace instead
+  const existIdx=filterStack.findIndex(f=>f.level===level);
+  if(existIdx>=0){
+    // If same key → pop (toggle off this level and everything below)
+    if(filterStack[existIdx].key===key){
+      filterStack=filterStack.slice(0,existIdx);
+    } else {
+      // Different value at same level → replace from here down
+      filterStack=filterStack.slice(0,existIdx);
+      filterStack.push({level,key,name,color});
+    }
   } else {
-    const sel = _segData[idx];
-    // Segments
+    filterStack.push({level,key,name,color});
+  }
+  _applyStack();
+}
+
+// ── Pop stack back to a given depth ───────────────────
+function _popToDepth(depth){
+  filterStack=filterStack.slice(0,depth);
+  _applyStack();
+}
+
+// ── Full clear ─────────────────────────────────────────
+function _clearAllFilters(){
+  filterStack=[];
+  _activeUnivIdx=-1;
+  activeMgr=null; activeTL=null;
+  _lastDonutHash=''; // force full redraw on next updateDonut call
+  const cached=mem[activeCk]; if(!cached) return;
+  const allRows=cached.data.allTrendRows||cached.data.trendRows||[];
+
+  // Restore donut to full unfiltered view
+  updateDonut(cached.data, allRows, false);
+  _syncDonutSelection();
+  _renderTrail();
+  filterCounselSection(allRows,null,null);
+  // Restore all incentive leaderboards to full unfiltered data
+  _refreshIncentives(allRows);
+
+  // Reset all bar visual state
+  document.querySelectorAll('[data-mgr],[data-tl]').forEach(r=>{
+    r.classList.remove('ml-active','ml-dim','active-mgr','dimmed');
+  });
+  $('mb')?.closest('.card')?.classList.remove('filter-active');
+  $('tb')?.closest('.card')?.classList.remove('filter-active');
+  document.querySelector('.univ-card')?.classList.remove('filter-active');
+
+  // Restore original bar fills from full data
+  const d=cached.data;
+  const sortedMgrs=[...MGRS].sort((a,b)=>(d[b.k]||0)-(d[a.k]||0));
+  const sortedTLs=[...TLS].sort((a,b)=>(d[b.k]||0)-(d[a.k]||0));
+  const maxMgr=Math.max(1,...MGRS.map(m=>d[m.k]||0));
+  const maxTL =Math.max(1,...TLS.map(t=>d[t.k]||0));
+  requestAnimationFrame(()=>{
+    sortedMgrs.forEach((m,i)=>{
+      const e=document.getElementById('mb'+i); if(!e) return;
+      e.style.transition=''; e.style.transform=`scaleX(${(d[m.k]||0)/maxMgr})`;
+    });
+    sortedTLs.forEach((t,i)=>{
+      const e=document.getElementById('tb'+i); if(!e) return;
+      e.style.transition=''; e.style.transform=`scaleX(${(d[t.k]||0)/maxTL})`;
+    });
+    document.querySelectorAll('[data-mgr]').forEach(row=>{
+      const k=row.dataset.mgr; const v=d[k]||0;
+      const bl=row.querySelector('.bl'); const bv=row.querySelector('.bv');
+      if(bl) bl.textContent=v+' adm'; if(bv) bv.textContent=v;
+    });
+    document.querySelectorAll('[data-tl]').forEach(row=>{
+      const k=row.dataset.tl; const v=d[k]||0;
+      const bl=row.querySelector('.bl'); const bv=row.querySelector('.bv');
+      if(bl) bl.textContent=v+' adm'; if(bv) bv.textContent=v;
+    });
+    $('mb-b').textContent=(d.netAdm||0)+' ADM';
+    $('tb-b').textContent=(d.netAdm||0)+' ADM';
+  });
+}
+
+// ── Breadcrumb click handler ───────────────────────────
+document.getElementById('ftCrumbs').addEventListener('click',e=>{
+  const crumb=e.target.closest('.ft-crumb');
+  if(!crumb) return;
+  const i=parseInt(crumb.dataset.crumb||'-1');
+  if(i<0) return;
+  // Click crumb = drill back up to just above this level (pop everything from i onwards)
+  _popToDepth(i);
+},{passive:true});
+
+document.getElementById('ftClear').addEventListener('click',()=>{ _clearAllFilters(); },{passive:true});
+
+// ═══════════════════════════════════════════════════════
+// DONUT VISUAL SELECTION (unchanged visual sync)
+// ═══════════════════════════════════════════════════════
+
+let _segData = [];
+let _activeUnivIdx = -1;
+
+function _syncDonutSelection(){
+  const idx=_activeUnivIdx;
+  const segs=document.querySelectorAll('svg.udonut circle.useg');
+  const legRows=document.querySelectorAll('#uleg .leg-row');
+  const ctr=$('donutCtr');
+  const numEl=$('unum');
+  const subEl=$('uSub');
+
+  if(idx===-1){
+    segs.forEach(s=>{s.classList.remove('seg-active','seg-dim');});
+    legRows.forEach(r=>{r.classList.remove('leg-active','leg-dim');});
+    if(ctr) ctr.classList.remove('has-sel');
+    const total=_segData.reduce((s,d)=>s+(d.value||0),0);
+    if(numEl) animCount(numEl,total);
+    if(subEl){
+      const univInStack=filterStack.find(f=>f.level==='univ');
+      subEl.textContent=univInStack?univInStack.name+' ADM':'NET ADM';
+    }
+    const nUnivs=_segData.filter(s=>s.visible).length;
+    $('ub-b').textContent=nUnivs+' UNIVS';
+  } else {
+    const sel=_segData[idx];
+    if(!sel) return;
     segs.forEach(s=>{
-      const si = parseInt(s.getAttribute('data-idx')||'-1');
-      if(si===idx){ s.classList.add('seg-active'); s.classList.remove('seg-dim'); }
-      else if(_segData[si]&&_segData[si].visible){ s.classList.remove('seg-active'); s.classList.add('seg-dim'); }
+      const si=parseInt(s.getAttribute('data-idx')||'-1');
+      if(si===idx){s.classList.add('seg-active');s.classList.remove('seg-dim');}
+      else if(_segData[si]&&_segData[si].visible){s.classList.remove('seg-active');s.classList.add('seg-dim');}
     });
-    // Legend rows — keyed by data-seg attribute
     legRows.forEach(r=>{
-      const ri = parseInt(r.getAttribute('data-seg')||'-1');
-      if(ri===idx){ r.classList.add('leg-active'); r.classList.remove('leg-dim'); }
-      else { r.classList.remove('leg-active'); r.classList.add('leg-dim'); }
+      const ri=parseInt(r.getAttribute('data-seg')||'-1');
+      if(ri===idx){r.classList.add('leg-active');r.classList.remove('leg-dim');}
+      else{r.classList.remove('leg-active');r.classList.add('leg-dim');}
     });
-    // Center label → show selected university count + name
     if(ctr) ctr.classList.add('has-sel');
-    if(numEl) animCount(numEl, sel.value);
-    if(subEl){ subEl.textContent = sel.name.length > 10 ? sel.name.slice(0,10)+'…' : sel.name; }
-    // Badge
-    $('ub-b').textContent = sel.name+' · '+sel.pct+'%';
+    if(numEl) animCount(numEl,sel.value);
+    if(subEl) subEl.textContent=sel.name.length>10?sel.name.slice(0,10)+'…':sel.name;
+    $('ub-b').textContent=sel.name+' · '+sel.pct+'%';
   }
 }
 
-// ── Tooltip positioning helper ────────────────────────
-function _showDonutTip(seg, segIdx){
-  const tip = $('donutTip');
-  if(!tip || !seg) return;
-  const d = _segData[segIdx];
-  if(!d || !d.visible) return;
-
-  document.getElementById('dtName').textContent = d.name;
-  document.getElementById('dtVal').textContent  = d.value;
-  document.getElementById('dtVal').style.color  = d.color;
-  document.getElementById('dtPct').textContent  = d.pct+'% of total';
-
-  // Position tip above the donut center (fixed, since SVG is small)
-  tip.style.left = '74px';
-  tip.style.top  = '10px';
+// ── Tooltip ────────────────────────────────────────────
+function _showDonutTip(seg,segIdx){
+  const tip=$('donutTip'); if(!tip||!seg) return;
+  const d=_segData[segIdx]; if(!d||!d.visible) return;
+  document.getElementById('dtName').textContent=d.name;
+  document.getElementById('dtVal').textContent=d.value;
+  document.getElementById('dtVal').style.color=d.color;
+  document.getElementById('dtPct').textContent=d.pct+'% of total';
+  tip.style.left='74px'; tip.style.top='10px';
   tip.classList.add('show');
 }
 function _hideDonutTip(){
-  const tip = $('donutTip');
-  if(tip) tip.classList.remove('show');
+  const tip=$('donutTip'); if(tip) tip.classList.remove('show');
 }
 
-// ── Counsellor filter by selected university ──────────
-function _filterByUniv(segIdx){
-  const cached = mem[activeCk]; if(!cached) return;
-  const d = cached.data;
-  const allRows = d.allTrendRows || d.trendRows || [];
-  if(segIdx === -1){
-    // Clear university filter — show all (respect mgr/tl filter if set)
-    if(activeMgr){
-      const mgrObj = _mgrByKey[activeMgr];
-      const name = mgrObj ? mgrObj.n : '';
-      const mgrRows = allRows.filter(r=>(r.mgr||'').trim().toLowerCase()===name.toLowerCase());
-      filterCounselSection(mgrRows, name, 'mgr');
-    } else if(activeTL){
-      const tlRows = allRows.filter(r=>resolveTL((r.tl||'').trim().toLowerCase())===activeTL);
-      const tlObj = _tlByKey[activeTL];
-      filterCounselSection(tlRows, tlObj?tlObj.n:'', 'tl');
-    } else {
-      filterCounselSection(allRows, null, null);
-    }
-    return;
-  }
-  const sel = _segData[segIdx];
-  if(!sel) return;
-  const univKey = UNIVS[segIdx] ? UNIVS[segIdx].k : '';
-  const univRows = allRows.filter(r=>{
-    const uRaw=(r.univ||'').toString().trim();
-    const nk=uRaw.toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
-    return nk===univKey;
-  });
-  filterCounselSection(univRows, sel.name, 'univ');
-}
-
-// ── Main toggle function ──────────────────────────────
+// ── Select a university — Level 1 of the chain ─────────
 function selectUniv(idx){
-  if(_activeUnivIdx === idx){
-    // Clicking same → deselect
-    _activeUnivIdx = -1;
-  } else {
-    _activeUnivIdx = idx;
-  }
-  _syncDonutSelection();
-  _filterByUniv(_activeUnivIdx);
+  if(!_segData[idx]||!_segData[idx].visible) return;
+  const seg=_segData[idx];
+  const univKey=UNIVS[idx]?UNIVS[idx].k:'';
+  _pushFilter('univ', univKey, seg.name, seg.color);
   _hideDonutTip();
 }
 
-// ── SVG segment events (click + hover tooltip) ────────
+// ── SVG events ─────────────────────────────────────────
 (function wireDonutSVG(){
-  const svg = document.querySelector('svg.udonut');
-  if(!svg) return;
-
-  // Click — delegated on SVG
-  svg.addEventListener('click', e=>{
-    const seg = e.target.closest('circle.useg');
-    if(!seg) return;
-    const idx = parseInt(seg.getAttribute('data-idx')||'-1');
-    if(idx<0 || !_segData[idx] || !_segData[idx].visible) return;
+  const svg=document.querySelector('svg.udonut'); if(!svg) return;
+  svg.addEventListener('click',e=>{
+    const seg=e.target.closest('circle.useg'); if(!seg) return;
+    const idx=parseInt(seg.getAttribute('data-idx')||'-1');
+    if(idx<0||!_segData[idx]||!_segData[idx].visible) return;
     selectUniv(idx);
-  }, {passive:true});
-
-  // Hover tooltip
-  svg.addEventListener('mouseover', e=>{
-    const seg = e.target.closest('circle.useg');
-    if(!seg) return;
-    const idx = parseInt(seg.getAttribute('data-idx')||'-1');
-    if(idx<0 || !_segData[idx] || !_segData[idx].visible) return;
-    _showDonutTip(seg, idx);
-  }, {passive:true});
-
-  svg.addEventListener('mouseout', e=>{
-    if(!e.relatedTarget || !e.relatedTarget.closest('circle.useg')){
-      _hideDonutTip();
-    }
-  }, {passive:true});
+  },{passive:true});
+  svg.addEventListener('mouseover',e=>{
+    const seg=e.target.closest('circle.useg'); if(!seg) return;
+    const idx=parseInt(seg.getAttribute('data-idx')||'-1');
+    if(idx<0||!_segData[idx]||!_segData[idx].visible) return;
+    _showDonutTip(seg,idx);
+  },{passive:true});
+  svg.addEventListener('mouseout',e=>{
+    if(!e.relatedTarget||!e.relatedTarget.closest('circle.useg')) _hideDonutTip();
+  },{passive:true});
 })();
 
-// ── Legend row events (delegated on #uleg) ────────────
-$('uleg').addEventListener('click', e=>{
-  const row = e.target.closest('.leg-row');
-  if(!row) return;
-  const idx = parseInt(row.getAttribute('data-seg')||'-1');
-  if(idx<0 || !_segData[idx] || !_segData[idx].visible) return;
+// ── Legend clicks ──────────────────────────────────────
+$('uleg').addEventListener('click',e=>{
+  const row=e.target.closest('.leg-row'); if(!row) return;
+  const idx=parseInt(row.getAttribute('data-seg')||'-1');
+  if(idx<0||!_segData[idx]||!_segData[idx].visible) return;
   selectUniv(idx);
-}, {passive:true});
+},{passive:true});
 
-// Hover on legend row → highlight corresponding segment
-$('uleg').addEventListener('mouseover', e=>{
-  const row = e.target.closest('.leg-row');
-  if(!row || _activeUnivIdx !== -1) return; // don't interfere when something's selected
-  const idx = parseInt(row.getAttribute('data-seg')||'-1');
-  if(idx<0) return;
-  const seg = document.getElementById('u'+(idx+1));
-  if(seg && _segData[idx]&&_segData[idx].visible){
-    seg.setAttribute('stroke-width','15');
-    seg.style.filter=`drop-shadow(0 0 10px ${_segData[idx].color})`;
-  }
-}, {passive:true});
+$('uleg').addEventListener('mouseover',e=>{
+  const row=e.target.closest('.leg-row');
+  if(!row||_activeUnivIdx!==-1) return;
+  const idx=parseInt(row.getAttribute('data-seg')||'-1'); if(idx<0) return;
+  const seg=document.getElementById('u'+(idx+1));
+  if(seg&&_segData[idx]&&_segData[idx].visible){seg.setAttribute('stroke-width','15');seg.style.filter=`drop-shadow(0 0 10px ${_segData[idx].color})`;}
+},{passive:true});
 
-$('uleg').addEventListener('mouseout', e=>{
-  const row = e.target.closest('.leg-row');
-  if(!row || _activeUnivIdx !== -1) return;
-  const idx = parseInt(row.getAttribute('data-seg')||'-1');
-  if(idx<0) return;
-  const seg = document.getElementById('u'+(idx+1));
-  if(seg){ seg.setAttribute('stroke-width','12'); seg.style.filter=''; }
-}, {passive:true});
+$('uleg').addEventListener('mouseout',e=>{
+  const row=e.target.closest('.leg-row');
+  if(!row||_activeUnivIdx!==-1) return;
+  const idx=parseInt(row.getAttribute('data-seg')||'-1'); if(idx<0) return;
+  const seg=document.getElementById('u'+(idx+1));
+  if(seg){seg.setAttribute('stroke-width','12');seg.style.filter='';}
+},{passive:true});
 
-// ── Keyboard: Escape deselects ────────────────────────
-document.addEventListener('keydown', e=>{
-  if(e.key==='Escape' && _activeUnivIdx !== -1){
-    _activeUnivIdx = -1;
-    _syncDonutSelection();
-    _filterByUniv(-1);
-  }
+// ── Keyboard ───────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&filterStack.length){ _clearAllFilters(); }
 });
 
-// ── Donut box click-outside deselect ─────────────────
-document.querySelector('.donut-box')?.addEventListener('click', e=>{
-  if(!e.target.closest('circle.useg')){
-    if(_activeUnivIdx !== -1){
-      _activeUnivIdx=-1; _syncDonutSelection(); _filterByUniv(-1);
-    }
+// ── Click outside donut box ────────────────────────────
+document.querySelector('.donut-box')?.addEventListener('click',e=>{
+  if(!e.target.closest('circle.useg')&&_activeUnivIdx!==-1){
+    _popToDepth(0); // clear univ and everything below
   }
-}, {passive:true});
+},{passive:true});
 
+// ═══════════════════════════════════════════════════════
+// MANAGER BAR CLICK — Level 2 of chain (within univ filter)
+// ═══════════════════════════════════════════════════════
 function toggleMgrFilter(key,name){
-  const cached=mem[activeCk]; if(!cached)return;
-  activeTL=null;
-  _activeUnivIdx=-1; // reset univ selection
-  const wasActive = activeMgr===key;
-  activeMgr = wasActive ? null : key;
-
-  // Donut filter tag
-  if(activeMgr){ $('univFilterName').textContent=name; $('univFilterTag').classList.add('show'); }
-  else { $('univFilterTag').classList.remove('show'); }
-
-  syncBarStates();
-  updateDonut(cached.data, lastTrendRows);
-
-  // Filter counsellor section to show only this manager's counsellors
-  const d = cached.data;
-  const allRows = d.allTrendRows || d.trendRows || [];
-  if(activeMgr){
-    const mgrRows = allRows.filter(r=>(r.mgr||'').trim().toLowerCase()===name.toLowerCase());
-    filterCounselSection(mgrRows, name, 'mgr');
-  } else {
-    filterCounselSection(allRows, null, null);
-  }
+  const mgrObj=_mgrByKey[key];
+  const color=mgrObj?'#818cf8':'#818cf8';
+  _pushFilter('mgr', key, name, color);
 }
 
+// ═══════════════════════════════════════════════════════
+// TL BAR CLICK — Level 3 of chain (within univ+mgr filter)
+// ═══════════════════════════════════════════════════════
 function toggleTLFilter(key,name){
-  const cached=mem[activeCk]; if(!cached)return;
-  activeMgr=null;
-  _activeUnivIdx=-1; // reset univ selection
-  const wasActive = activeTL===key;
-  activeTL = wasActive ? null : key;
+  const tlObj=_tlByKey[key];
+  const color=tlObj?'#22d3ee':'#22d3ee';
+  _pushFilter('tl', key, name, color);
+}
 
-  // Donut filter tag
-  if(activeTL){ $('univFilterName').textContent=name; $('univFilterTag').classList.add('show'); }
-  else { $('univFilterTag').classList.remove('show'); }
-
-  syncBarStates();
-  updateDonut(cached.data, lastTrendRows);
-
-  // Filter counsellor section to show only this TL's counsellors
-  const d = cached.data;
-  const allRows = d.allTrendRows || d.trendRows || [];
-  if(activeTL){
-    const tlRows = allRows.filter(r=>resolveTL((r.tl||'').trim().toLowerCase())===key);
-    filterCounselSection(tlRows, name, 'tl');
-  } else {
-    filterCounselSection(allRows, null, null);
-  }
+function syncBarStates(){
+  // Now handled by _recomputeBarsFromRows — stub kept for compatibility
+  document.querySelectorAll('[data-mgr]').forEach(r=>r.classList.remove('active-mgr','dimmed'));
+  document.querySelectorAll('[data-tl]').forEach(r=>r.classList.remove('active-mgr','dimmed'));
 }
 
 // ── Filter counsellor section by manager, TL, or university ─────────────────────
@@ -2933,9 +3192,21 @@ function drawTLIncLeaderboard(rows){
   const role = currentUser ? currentUser.role : 'public';
   if(role!=='tl' && role!=='manager'){ sec.style.setProperty('display','none','important'); return; }
   const data=buildTLIncMap(rows);
-  if(!data.length){ sec.style.setProperty('display','none','important'); return; }
+  if(!data.length){
+    // When a filter is active, show the section with a contextual empty state
+    if(filterStack.length){
+      sec.style.setProperty('display','block','important');
+      const chartEl=$('tlIncChart');
+      if(chartEl) chartEl.innerHTML=`<div class="nodata"><div class="ico">📭</div><p>No TL incentive data for ${filterStack.map(f=>f.name).join(' › ')}</p></div>`;
+      const subEl=document.getElementById('tlIncSortSub');
+      if(subEl) subEl.textContent=filterStack.map(f=>f.name).join(' › ');
+    } else {
+      sec.style.setProperty('display','none','important');
+    }
+    return;
+  }
   sec.style.setProperty('display','block','important');
-  _incRawData['tlInc'] = data.slice(); // store unsorted master copy
+  _incRawData['tlInc'] = data.slice();
   renderIncLeaderboard(_applySort('tlInc', data),'tlInc','Team Leader Incentive');
 }
 
@@ -2944,7 +3215,18 @@ function drawMgrIncLeaderboard(rows){
   const role = currentUser ? currentUser.role : 'public';
   if(role!=='manager'){ sec.style.setProperty('display','none','important'); return; }
   const data=buildMgrIncMap(rows);
-  if(!data.length){ sec.style.setProperty('display','none','important'); return; }
+  if(!data.length){
+    if(filterStack.length){
+      sec.style.setProperty('display','block','important');
+      const chartEl=$('mgrIncChart');
+      if(chartEl) chartEl.innerHTML=`<div class="nodata"><div class="ico">📭</div><p>No manager incentive data for ${filterStack.map(f=>f.name).join(' › ')}</p></div>`;
+      const subEl=document.getElementById('mgrIncSortSub');
+      if(subEl) subEl.textContent=filterStack.map(f=>f.name).join(' › ');
+    } else {
+      sec.style.setProperty('display','none','important');
+    }
+    return;
+  }
   sec.style.setProperty('display','block','important');
   _incRawData['mgrInc'] = data.slice();
   renderIncLeaderboard(_applySort('mgrInc', data),'mgrInc','Manager Incentive');
@@ -2961,12 +3243,13 @@ function renderIncLeaderboard(data, prefix, title){
   if(titleEl) titleEl.textContent='💰 '+title+' Leaderboard';
   if(totalEl) totalEl.textContent='₹'+fmtInc(total);
 
-  // Update subtitle to reflect current sort
+  // Subtitle: show sort + active filter context
   if(subEl){
     const st = _incSort[prefix]||{sort:'inc',dir:'desc'};
     const sortName = st.sort==='inc' ? 'incentive' : 'admissions';
     const dirName  = st.dir==='desc' ? 'highest first' : 'lowest first';
-    subEl.textContent = `Sorted by ${sortName} · ${dirName}`;
+    const ctx = filterStack.length ? ' · '+filterStack.map(f=>f.name).join(' › ') : '';
+    subEl.textContent = `Sorted by ${sortName} · ${dirName}${ctx}`;
   }
 
   const isAsc = (_incSort[prefix]||{}).dir === 'asc';
@@ -3014,7 +3297,8 @@ function _renderCounselIncChart(sorted){
   const subEl=document.getElementById('incSortSub');
   if(subEl){
     const st=_incSort['inc']||{sort:'inc',dir:'desc'};
-    subEl.textContent=`Sorted by ${st.sort==='inc'?'incentive':'admissions'} · ${st.dir==='desc'?'highest first':'lowest first'}`;
+    const ctx = filterStack.length ? ' · '+filterStack.map(f=>f.name).join(' › ') : '';
+    subEl.textContent=`Sorted by ${st.sort==='inc'?'incentive':'admissions'} · ${st.dir==='desc'?'highest first':'lowest first'}${ctx}`;
   }
 
   const isAsc=(_incSort['inc']||{}).dir==='asc';
@@ -3293,25 +3577,12 @@ $('rangeBadgeX').addEventListener('click',()=>{
 },{passive:true});
 
 $('univFilterX').addEventListener('click',()=>{
-  const c=mem[activeCk]; if(!c)return;
-  activeMgr=null; activeTL=null;
-  syncBarStates();
-  $('univFilterTag').classList.remove('show');
-  updateDonut(c.data,lastTrendRows);
-  // Also reset counsellor filter
-  const allRows=(c.data.allTrendRows||c.data.trendRows||[]);
-  filterCounselSection(allRows, null, null);
+  _clearAllFilters();
 },{passive:true});
 
-// Counsellor filter X — clear manager/TL filter
+// Counsellor filter X — clear all filters
 $('counselFilterX').addEventListener('click',()=>{
-  const c=mem[activeCk]; if(!c)return;
-  activeMgr=null; activeTL=null;
-  syncBarStates();
-  $('univFilterTag').classList.remove('show');
-  updateDonut(c.data,lastTrendRows);
-  const allRows=(c.data.allTrendRows||c.data.trendRows||[]);
-  filterCounselSection(allRows, null, null);
+  _clearAllFilters();
 },{passive:true});
 
 // ═══════════════════════════════════════════════════════
@@ -3322,7 +3593,7 @@ $('counselFilterX').addEventListener('click',()=>{
 // roles: 'admin' = sees everything | 'counsellor' = sees only own incentive
 const USERS = [
   // Manager — sees ALL incentive data (counsellor + TL + manager)
-  { username:'manager', pin:'Mgr#368Go', role:'manager' },
+  { username:'manager', pin:'Mgr@2026', role:'manager' },
 
   // Team Leader — sees counsellor + TL incentive (no manager incentive)
   { username:'teamleader', pin:'TL@2026', role:'tl' },
