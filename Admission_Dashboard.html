@@ -309,24 +309,17 @@ body::before{
 .bf-tgt-ach.low{background:linear-gradient(90deg,#dc2626,#ef4444,#fca5a5);box-shadow:0 0 10px rgba(239,68,68,.25);}
 
 /* ═══════════════════════════════════════════════════════
-   DONUT CHART — fills full card height, no dead space
+   DONUT CHART — interactive segments
 ═══════════════════════════════════════════════════════ */
-
-/* Card itself stretches to match its grid sibling */
 .card.univ-card{
   display:flex;flex-direction:column;
-  /* Remove paint containment — it clips flex children growing to full height */
   contain:layout style;
 }
-
-/* donut-wrap fills remaining card height after the header */
 .donut-wrap{
   display:flex;align-items:stretch;
   gap:0;width:100%;flex:1;
   min-height:148px;
 }
-
-/* Donut box — fixed width, SVG centered vertically */
 .donut-box{
   position:relative;flex-shrink:0;
   width:148px;min-height:148px;
@@ -336,45 +329,124 @@ body::before{
 .donut-ctr{
   position:absolute;top:50%;left:50%;
   transform:translate(-50%,-50%);text-align:center;pointer-events:none;
+  transition:opacity .25s ease;
 }
 .donut-num{
   font-size:28px;font-weight:900;line-height:1;letter-spacing:-.03em;
   background:linear-gradient(135deg,#fff 55%,rgba(255,255,255,.55));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  transition:font-size .2s ease;
 }
 .donut-sub{
   font-size:8px;font-weight:700;color:rgba(255,255,255,.28);
   letter-spacing:.15em;margin-top:5px;display:block;text-transform:uppercase;
+  transition:color .2s ease;
 }
-#u1,#u2,#u3,#u4,#u5,#u6{
-  filter:drop-shadow(0 0 6px rgba(255,255,255,.08));
+/* SVG segment base transitions */
+svg.udonut circle.useg{
   transition:stroke-dasharray .4s cubic-bezier(.16,1,.3,1),
-             stroke-dashoffset .55s cubic-bezier(.16,1,.3,1);
-  will-change:stroke-dasharray,stroke-dashoffset;
+             stroke-dashoffset .55s cubic-bezier(.16,1,.3,1),
+             stroke-width .25s cubic-bezier(.34,1.56,.64,1),
+             opacity .22s ease,
+             filter .22s ease;
+  will-change:stroke-dasharray,stroke-dashoffset,stroke-width,opacity;
+  cursor:pointer;
+}
+/* Hover — subtle grow */
+svg.udonut circle.useg:hover{
+  stroke-width:14px;
+  filter:drop-shadow(0 0 8px currentColor);
+}
+/* Selected segment — pop out + glow */
+svg.udonut circle.useg.seg-active{
+  stroke-width:16px;
+  filter:drop-shadow(0 0 12px currentColor) drop-shadow(0 0 4px currentColor);
+  opacity:1 !important;
+}
+/* Dimmed segments */
+svg.udonut circle.useg.seg-dim{
+  opacity:0.18;
+  stroke-width:11px;
+  filter:none;
+}
+/* Center label when a university is selected */
+.donut-ctr.has-sel .donut-num{
+  font-size:22px;
+}
+.donut-ctr.has-sel .donut-sub{
+  color:rgba(255,255,255,.55);
+  font-size:7px;
 }
 
-/* Legend — stretches full height, rows space-evenly to fill it */
+/* ── Donut tooltip ───────────────────────────────────── */
+.donut-tip{
+  position:absolute;
+  background:rgba(10,11,24,.97);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:10px;padding:9px 13px;
+  pointer-events:none;
+  opacity:0;
+  transform:translate(-50%,-110%) scale(.92);
+  transition:opacity .15s ease,transform .15s ease;
+  z-index:50;white-space:nowrap;
+  box-shadow:0 8px 28px rgba(0,0,0,.6);
+  min-width:120px;
+}
+.donut-tip.show{
+  opacity:1;
+  transform:translate(-50%,-110%) scale(1);
+}
+.donut-tip-name{font-size:12px;font-weight:800;color:#fff;margin-bottom:4px;}
+.donut-tip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;}
+.donut-tip-val{font-size:18px;font-weight:900;line-height:1;}
+.donut-tip-pct{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);margin-top:2px;}
+
+/* Legend — stretches full height, rows space-evenly */
 .leg{
   flex:1;min-width:0;padding-left:18px;
   display:flex;flex-direction:column;
-  justify-content:space-evenly;  /* rows spread to fill whatever height exists */
+  justify-content:space-evenly;
 }
 .leg-row{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:5px 10px;border-radius:8px;transition:background .12s;cursor:default;
-  flex:1;max-height:42px;        /* cap so rows don't balloon on very tall cards */
+  padding:5px 10px;border-radius:8px;
+  transition:background .12s,opacity .22s ease,transform .2s ease;
+  cursor:pointer;
+  flex:1;max-height:42px;
 }
-.leg-row:hover{background:rgba(255,255,255,.055);}
+.leg-row:hover{ background:rgba(255,255,255,.07); }
+/* Selected legend row */
+.leg-row.leg-active{
+  background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.12);
+  transform:translateX(3px);
+}
+/* Dimmed legend row */
+.leg-row.leg-dim{
+  opacity:0.28;
+  pointer-events:none;
+}
 .leg-l{display:flex;align-items:center;gap:9px;min-width:0;flex:1;}
-.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.leg-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+.leg-row.leg-active .leg-dot{
+  transform:scale(1.4);
+  box-shadow:0 0 8px currentColor;
+}
 .leg-name{
   font-size:12.5px;font-weight:600;color:rgba(255,255,255,.72);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;
+  transition:color .2s ease;
 }
+.leg-row.leg-active .leg-name{ color:#fff;font-weight:800; }
 .leg-pct{
   font-size:10px;font-weight:700;color:rgba(255,255,255,.2);
   min-width:32px;text-align:right;flex-shrink:0;
+  transition:color .2s ease;
 }
+.leg-row.leg-active .leg-pct{ color:rgba(255,255,255,.55); }
 .leg-val{
   font-size:14px;font-weight:900;
   min-width:28px;text-align:right;flex-shrink:0;letter-spacing:-.02em;
@@ -575,6 +647,50 @@ body::before{
 .inc-row:nth-child(1) .inc-bar{box-shadow:0 0 22px rgba(251,191,36,.28);}
 .inc-row:nth-child(2) .inc-bar{box-shadow:0 0 16px rgba(148,163,184,.16);}
 .inc-row:nth-child(3) .inc-bar{box-shadow:0 0 16px rgba(180,107,60,.2);}
+
+/* ═══════════════════════════════════════════════════════
+   INCENTIVE SORT CONTROLS
+═══════════════════════════════════════════════════════ */
+.inc-controls{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;gap:10px;flex-wrap:wrap;position:relative;z-index:1;
+}
+.inc-sort-group{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:4px;gap:3px;
+}
+.inc-sort-lbl{
+  font-size:9px;font-weight:800;color:rgba(255,255,255,.3);
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:0 6px 0 4px;white-space:nowrap;
+  border-right:1px solid rgba(255,255,255,.08);
+  margin-right:2px;
+}
+.inc-sort-btn{
+  display:flex;align-items:center;gap:4px;
+  padding:5px 10px;border-radius:7px;
+  font-size:10px;font-weight:800;letter-spacing:.02em;
+  cursor:pointer;border:none;background:transparent;
+  color:rgba(255,255,255,.35);font-family:var(--font);
+  transition:color .13s,background .13s;user-select:none;
+  white-space:nowrap;
+}
+.inc-sort-btn:hover{ color:rgba(255,255,255,.75); background:rgba(255,255,255,.07); }
+.inc-sort-btn.active{
+  background:rgba(99,102,241,.22);
+  border:1px solid rgba(99,102,241,.45);
+  color:#a5b4fc;
+}
+.inc-sort-btn.active.asc{ background:rgba(16,185,129,.18); border-color:rgba(16,185,129,.4); color:#34d399; }
+.inc-sort-btn svg{ flex-shrink:0; transition:transform .2s ease; }
+.inc-sort-btn.active svg{ transform:translateY(-1px); }
+/* Subtle row reorder animation */
+.inc-chart{ transition:opacity .18s ease; }
+.inc-chart.sorting{ opacity:0.45; }
+/* Rank badge changes with sort */
+.inc-rank.sorted-asc.r1{ background:rgba(16,185,129,.2);color:#34d399;border-color:rgba(16,185,129,.35); }
 
 /* ═══════════════════════════════════════════════════════
    CALENDAR PANEL
@@ -1054,16 +1170,27 @@ body.role-manager #mgrIncSection {
       <div class="card-head"><span class="card-title">Process Split</span><span class="card-badge" id="ub-b">&#8212;</span></div>
       <div class="donut-wrap">
         <div class="donut-box">
-          <svg width="148" height="148" viewBox="0 0 100 100">
+          <svg class="udonut" width="148" height="148" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="12"/>
-            <circle id="u1" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)"/>
-            <circle id="u2" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)"/>
-            <circle id="u3" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)"/>
-            <circle id="u4" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)"/>
-            <circle id="u5" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)"/>
-            <circle id="u6" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)"/>
+            <circle class="useg" id="u1" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)" data-idx="0"/>
+            <circle class="useg" id="u2" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)" data-idx="1"/>
+            <circle class="useg" id="u3" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)" data-idx="2"/>
+            <circle class="useg" id="u4" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)" data-idx="3"/>
+            <circle class="useg" id="u5" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)" data-idx="4"/>
+            <circle class="useg" id="u6" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="0 238.8" transform="rotate(-90 50 50)" data-idx="5"/>
           </svg>
-          <div class="donut-ctr"><div class="donut-num" id="unum">&#8212;</div><span class="donut-sub" id="uSub">NET ADM</span></div>
+          <div class="donut-ctr" id="donutCtr">
+            <div class="donut-num" id="unum">&#8212;</div>
+            <span class="donut-sub" id="uSub">NET ADM</span>
+          </div>
+          <!-- Tooltip -->
+          <div class="donut-tip" id="donutTip">
+            <div class="donut-tip-name" id="dtName"></div>
+            <div class="donut-tip-row">
+              <span class="donut-tip-val" id="dtVal"></span>
+              <span class="donut-tip-pct" id="dtPct"></span>
+            </div>
+          </div>
         </div>
         <div class="leg" id="uleg"><div style="display:flex;flex-direction:column;gap:10px;padding:8px 0;width:100%;">
   <div class="skel-bar" style="height:14px;border-radius:6px;"></div>
@@ -1142,9 +1269,30 @@ body.role-manager #mgrIncSection {
       <div class="inc-head">
         <div>
           <div class="inc-head-title">💰 Counsellor Incentive Leaderboard</div>
-          <div class="inc-head-sub">Sorted by earnings</div>
+          <div class="inc-head-sub" id="incSortSub">Sorted by incentive · highest first</div>
         </div>
         <div class="inc-total-pill" id="incTotal"></div>
+      </div>
+      <div class="inc-controls">
+        <div class="inc-sort-group" id="incSortGroup">
+          <span class="inc-sort-lbl">Sort</span>
+          <button class="inc-sort-btn active" data-panel="inc" data-sort="inc" data-dir="desc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M2 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Incentive ↓
+          </button>
+          <button class="inc-sort-btn" data-panel="inc" data-sort="inc" data-dir="asc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 9V1M2 4l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Incentive ↑
+          </button>
+          <button class="inc-sort-btn" data-panel="inc" data-sort="adm" data-dir="desc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M2 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Admissions ↓
+          </button>
+          <button class="inc-sort-btn" data-panel="inc" data-sort="adm" data-dir="asc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 9V1M2 4l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Admissions ↑
+          </button>
+        </div>
       </div>
       <div class="inc-chart" id="incChart"></div>
     </div>
@@ -1154,9 +1302,30 @@ body.role-manager #mgrIncSection {
       <div class="inc-head">
         <div>
           <div class="inc-head-title" id="tlIncTitle">💰 Team Leader Incentive Leaderboard</div>
-          <div class="inc-head-sub">Sorted by TL earnings</div>
+          <div class="inc-head-sub" id="tlIncSortSub">Sorted by incentive · highest first</div>
         </div>
         <div class="inc-total-pill" id="tlIncTotal"></div>
+      </div>
+      <div class="inc-controls">
+        <div class="inc-sort-group" id="tlIncSortGroup">
+          <span class="inc-sort-lbl">Sort</span>
+          <button class="inc-sort-btn active" data-panel="tlInc" data-sort="inc" data-dir="desc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M2 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Incentive ↓
+          </button>
+          <button class="inc-sort-btn" data-panel="tlInc" data-sort="inc" data-dir="asc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 9V1M2 4l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Incentive ↑
+          </button>
+          <button class="inc-sort-btn" data-panel="tlInc" data-sort="adm" data-dir="desc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M2 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Admissions ↓
+          </button>
+          <button class="inc-sort-btn" data-panel="tlInc" data-sort="adm" data-dir="asc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 9V1M2 4l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Admissions ↑
+          </button>
+        </div>
       </div>
       <div class="inc-chart" id="tlIncChart"></div>
     </div>
@@ -1166,9 +1335,30 @@ body.role-manager #mgrIncSection {
       <div class="inc-head">
         <div>
           <div class="inc-head-title" id="mgrIncTitle">💰 Manager Incentive Leaderboard</div>
-          <div class="inc-head-sub">Sorted by manager earnings</div>
+          <div class="inc-head-sub" id="mgrIncSortSub">Sorted by incentive · highest first</div>
         </div>
         <div class="inc-total-pill" id="mgrIncTotal"></div>
+      </div>
+      <div class="inc-controls">
+        <div class="inc-sort-group" id="mgrIncSortGroup">
+          <span class="inc-sort-lbl">Sort</span>
+          <button class="inc-sort-btn active" data-panel="mgrInc" data-sort="inc" data-dir="desc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M2 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Incentive ↓
+          </button>
+          <button class="inc-sort-btn" data-panel="mgrInc" data-sort="inc" data-dir="asc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 9V1M2 4l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Incentive ↑
+          </button>
+          <button class="inc-sort-btn" data-panel="mgrInc" data-sort="adm" data-dir="desc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M2 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Admissions ↓
+          </button>
+          <button class="inc-sort-btn" data-panel="mgrInc" data-sort="adm" data-dir="asc">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 9V1M2 4l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Admissions ↑
+          </button>
+        </div>
       </div>
       <div class="inc-chart" id="mgrIncChart"></div>
     </div>
@@ -2026,19 +2216,25 @@ const _tlKeyToLC = Object.create(null);
 TLS.forEach(t=>_tlKeyToLC[t.k]=t.n.toLowerCase());
 
 function ensureDonutSegments(){
-  const svg=document.querySelector('svg.udonut')||($('u1')&&$('u1').closest('svg'));
+  const svg=document.querySelector('svg.udonut');
   if(!svg) return;
-  const have=svg.querySelectorAll('circle[id^="u"]').length;
+  const have=svg.querySelectorAll('circle.useg').length;
   for(let i=have+1;i<=UNIVS.length;i++){
     const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.id='u'+i;c.setAttribute('cx','50');c.setAttribute('cy','50');
+    c.id='u'+i; c.className.baseVal='useg';
+    c.setAttribute('cx','50');c.setAttribute('cy','50');
     c.setAttribute('r','38');c.setAttribute('fill','none');
     c.setAttribute('stroke-width','12');
     c.setAttribute('stroke-dasharray','0 238.8');
     c.setAttribute('transform','rotate(-90 50 50)');
+    c.setAttribute('data-idx', String(i-1));
     svg.appendChild(c);
   }
 }
+
+// Per-segment data store — keyed by index, used by tooltip + selection
+let _segData = []; // [{name, color, value, pct}]
+let _activeUnivIdx = -1; // -1 = none selected
 
 let _lastDonutHash = '';
 function updateDonut(d,rows){
@@ -2046,8 +2242,13 @@ function updateDonut(d,rows){
   if(h===_lastDonutHash && !activeMgr && !activeTL){ ensureDonutSegments(); return; }
   _lastDonutHash=h;
   ensureDonutSegments();
+
+  // Reset selection when data changes
+  _activeUnivIdx = -1;
+  _syncDonutSelection();
+
   const UL=UNIVS.length;
-  const uvArr=new Int32Array(UL); // typed — fastest accumulator
+  const uvArr=new Int32Array(UL);
   const fk=activeMgr||activeTL;
   const ft=activeMgr?'mgr':'tl';
 
@@ -2056,7 +2257,6 @@ function updateDonut(d,rows){
     const fname=fObj?fObj.n.toLowerCase():'';
     for(let i=0,L=rows.length;i<L;i++){
       const r=rows[i];
-      // For TL filter: match via alias map so spelling variants from sheet are caught
       if(ft==='tl'){
         const rTL=(r.tl||'').trim().toLowerCase();
         const resolved=resolveTL(rTL);
@@ -2087,23 +2287,249 @@ function updateDonut(d,rows){
   $('ub-b').textContent=(fName?fName+' · ':'')+nUnivs+' UNIVS';
   $('uSub').textContent=fName?fName+' ADM':'NET ADM';
 
-  // Single pass: update donut segments + build legend
-  let off=0; const legParts=[];
+  // Build _segData and update circles + legend
+  _segData = [];
+  let off=0;
+  const legParts=[];
+  let legIdx=0; // legend index (only for visible segments)
+
   for(let j=0;j<UL;j++){
     const u=UNIVS[j],v=uvArr[j];
     const arc=total>0?(v/total)*DONUT_C:0;
+    const pct=total>0?Math.round(v/total*100):0;
     const s=$('u'+(j+1));
-    if(s){s.setAttribute('stroke',u.cl);s.setAttribute('stroke-dasharray',arc+' '+DONUT_C);s.setAttribute('stroke-dashoffset',-off);}
+    if(s){
+      s.setAttribute('stroke',u.cl);
+      s.setAttribute('stroke-dasharray',arc+' '+DONUT_C);
+      s.setAttribute('stroke-dashoffset',-off);
+      s.setAttribute('data-idx', String(j));
+      // Hide zero-value segments from interaction
+      if(v===0){ s.style.pointerEvents='none'; s.style.opacity='0'; }
+      else { s.style.pointerEvents=''; s.style.opacity=''; }
+    }
     off+=arc;
-    // Only show in legend if count > 0
-    if(v>0) legParts.push(`<div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:${u.cl}"></div><span class="leg-name">${u.n}</span></div><span class="leg-pct">${total>0?Math.round(v/total*100):0}%</span><span class="leg-val">${v}</span></div>`);
+
+    _segData[j] = {name:u.n, color:u.cl, value:v, pct, visible: v>0};
+
+    if(v>0){
+      legParts.push(
+        `<div class="leg-row" data-seg="${j}" data-legidx="${legIdx}">` +
+        `<div class="leg-l"><div class="leg-dot" style="background:${u.cl};border-radius:50%;box-shadow:0 0 0 0 ${u.cl}"></div><span class="leg-name">${u.n}</span></div>` +
+        `<span class="leg-pct">${pct}%</span>` +
+        `<span class="leg-val" style="color:${u.cl}">${v}</span>` +
+        `</div>`
+      );
+      legIdx++;
+    }
   }
   $('uleg').innerHTML=legParts.length?legParts.join(''):'<div style="color:rgba(255,255,255,.3);font-size:12px;padding:8px">No data</div>';
 }
 
+// ═══════════════════════════════════════════════════════
+// DONUT INTERACTION ENGINE
+// Click segment or legend row → select/deselect university
+// Updates: segment glow, legend dim, center label, counsellor filter, badge
+// ═══════════════════════════════════════════════════════
+
+function _syncDonutSelection(){
+  const idx = _activeUnivIdx;
+  const segs = document.querySelectorAll('svg.udonut circle.useg');
+  const legRows = document.querySelectorAll('#uleg .leg-row');
+  const ctr  = $('donutCtr');
+  const numEl = $('unum');
+  const subEl = $('uSub');
+
+  if(idx === -1){
+    // Nothing selected — restore all
+    segs.forEach(s=>{ s.classList.remove('seg-active','seg-dim'); });
+    legRows.forEach(r=>{ r.classList.remove('leg-active','leg-dim'); });
+    if(ctr) ctr.classList.remove('has-sel');
+    // Restore total count
+    const cached = mem[activeCk];
+    if(cached && numEl){
+      const total = _segData.reduce((s,d)=>s+(d.value||0),0);
+      animCount(numEl, total);
+      if(subEl) subEl.textContent = (activeMgr||activeTL) ? ((activeMgr?_mgrByKey[activeMgr]:_tlByKey[activeTL])?.n||'')+' ADM' : 'NET ADM';
+    }
+    $('ub-b').textContent = (() => {
+      const fObj=activeMgr?_mgrByKey[activeMgr]:activeTL?_tlByKey[activeTL]:null;
+      const fName=fObj?fObj.n:'';
+      const nUnivs=_segData.filter(s=>s.visible).length;
+      return (fName?fName+' · ':'')+nUnivs+' UNIVS';
+    })();
+  } else {
+    const sel = _segData[idx];
+    // Segments
+    segs.forEach(s=>{
+      const si = parseInt(s.getAttribute('data-idx')||'-1');
+      if(si===idx){ s.classList.add('seg-active'); s.classList.remove('seg-dim'); }
+      else if(_segData[si]&&_segData[si].visible){ s.classList.remove('seg-active'); s.classList.add('seg-dim'); }
+    });
+    // Legend rows — keyed by data-seg attribute
+    legRows.forEach(r=>{
+      const ri = parseInt(r.getAttribute('data-seg')||'-1');
+      if(ri===idx){ r.classList.add('leg-active'); r.classList.remove('leg-dim'); }
+      else { r.classList.remove('leg-active'); r.classList.add('leg-dim'); }
+    });
+    // Center label → show selected university count + name
+    if(ctr) ctr.classList.add('has-sel');
+    if(numEl) animCount(numEl, sel.value);
+    if(subEl){ subEl.textContent = sel.name.length > 10 ? sel.name.slice(0,10)+'…' : sel.name; }
+    // Badge
+    $('ub-b').textContent = sel.name+' · '+sel.pct+'%';
+  }
+}
+
+// ── Tooltip positioning helper ────────────────────────
+function _showDonutTip(seg, segIdx){
+  const tip = $('donutTip');
+  if(!tip || !seg) return;
+  const d = _segData[segIdx];
+  if(!d || !d.visible) return;
+
+  document.getElementById('dtName').textContent = d.name;
+  document.getElementById('dtVal').textContent  = d.value;
+  document.getElementById('dtVal').style.color  = d.color;
+  document.getElementById('dtPct').textContent  = d.pct+'% of total';
+
+  // Position tip above the donut center (fixed, since SVG is small)
+  tip.style.left = '74px';
+  tip.style.top  = '10px';
+  tip.classList.add('show');
+}
+function _hideDonutTip(){
+  const tip = $('donutTip');
+  if(tip) tip.classList.remove('show');
+}
+
+// ── Counsellor filter by selected university ──────────
+function _filterByUniv(segIdx){
+  const cached = mem[activeCk]; if(!cached) return;
+  const d = cached.data;
+  const allRows = d.allTrendRows || d.trendRows || [];
+  if(segIdx === -1){
+    // Clear university filter — show all (respect mgr/tl filter if set)
+    if(activeMgr){
+      const mgrObj = _mgrByKey[activeMgr];
+      const name = mgrObj ? mgrObj.n : '';
+      const mgrRows = allRows.filter(r=>(r.mgr||'').trim().toLowerCase()===name.toLowerCase());
+      filterCounselSection(mgrRows, name, 'mgr');
+    } else if(activeTL){
+      const tlRows = allRows.filter(r=>resolveTL((r.tl||'').trim().toLowerCase())===activeTL);
+      const tlObj = _tlByKey[activeTL];
+      filterCounselSection(tlRows, tlObj?tlObj.n:'', 'tl');
+    } else {
+      filterCounselSection(allRows, null, null);
+    }
+    return;
+  }
+  const sel = _segData[segIdx];
+  if(!sel) return;
+  const univKey = UNIVS[segIdx] ? UNIVS[segIdx].k : '';
+  const univRows = allRows.filter(r=>{
+    const uRaw=(r.univ||'').toString().trim();
+    const nk=uRaw.toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
+    return nk===univKey;
+  });
+  filterCounselSection(univRows, sel.name, 'univ');
+}
+
+// ── Main toggle function ──────────────────────────────
+function selectUniv(idx){
+  if(_activeUnivIdx === idx){
+    // Clicking same → deselect
+    _activeUnivIdx = -1;
+  } else {
+    _activeUnivIdx = idx;
+  }
+  _syncDonutSelection();
+  _filterByUniv(_activeUnivIdx);
+  _hideDonutTip();
+}
+
+// ── SVG segment events (click + hover tooltip) ────────
+(function wireDonutSVG(){
+  const svg = document.querySelector('svg.udonut');
+  if(!svg) return;
+
+  // Click — delegated on SVG
+  svg.addEventListener('click', e=>{
+    const seg = e.target.closest('circle.useg');
+    if(!seg) return;
+    const idx = parseInt(seg.getAttribute('data-idx')||'-1');
+    if(idx<0 || !_segData[idx] || !_segData[idx].visible) return;
+    selectUniv(idx);
+  }, {passive:true});
+
+  // Hover tooltip
+  svg.addEventListener('mouseover', e=>{
+    const seg = e.target.closest('circle.useg');
+    if(!seg) return;
+    const idx = parseInt(seg.getAttribute('data-idx')||'-1');
+    if(idx<0 || !_segData[idx] || !_segData[idx].visible) return;
+    _showDonutTip(seg, idx);
+  }, {passive:true});
+
+  svg.addEventListener('mouseout', e=>{
+    if(!e.relatedTarget || !e.relatedTarget.closest('circle.useg')){
+      _hideDonutTip();
+    }
+  }, {passive:true});
+})();
+
+// ── Legend row events (delegated on #uleg) ────────────
+$('uleg').addEventListener('click', e=>{
+  const row = e.target.closest('.leg-row');
+  if(!row) return;
+  const idx = parseInt(row.getAttribute('data-seg')||'-1');
+  if(idx<0 || !_segData[idx] || !_segData[idx].visible) return;
+  selectUniv(idx);
+}, {passive:true});
+
+// Hover on legend row → highlight corresponding segment
+$('uleg').addEventListener('mouseover', e=>{
+  const row = e.target.closest('.leg-row');
+  if(!row || _activeUnivIdx !== -1) return; // don't interfere when something's selected
+  const idx = parseInt(row.getAttribute('data-seg')||'-1');
+  if(idx<0) return;
+  const seg = document.getElementById('u'+(idx+1));
+  if(seg && _segData[idx]&&_segData[idx].visible){
+    seg.setAttribute('stroke-width','15');
+    seg.style.filter=`drop-shadow(0 0 10px ${_segData[idx].color})`;
+  }
+}, {passive:true});
+
+$('uleg').addEventListener('mouseout', e=>{
+  const row = e.target.closest('.leg-row');
+  if(!row || _activeUnivIdx !== -1) return;
+  const idx = parseInt(row.getAttribute('data-seg')||'-1');
+  if(idx<0) return;
+  const seg = document.getElementById('u'+(idx+1));
+  if(seg){ seg.setAttribute('stroke-width','12'); seg.style.filter=''; }
+}, {passive:true});
+
+// ── Keyboard: Escape deselects ────────────────────────
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && _activeUnivIdx !== -1){
+    _activeUnivIdx = -1;
+    _syncDonutSelection();
+    _filterByUniv(-1);
+  }
+});
+
+// ── Donut box click-outside deselect ─────────────────
+document.querySelector('.donut-box')?.addEventListener('click', e=>{
+  if(!e.target.closest('circle.useg')){
+    if(_activeUnivIdx !== -1){
+      _activeUnivIdx=-1; _syncDonutSelection(); _filterByUniv(-1);
+    }
+  }
+}, {passive:true});
+
 function toggleMgrFilter(key,name){
   const cached=mem[activeCk]; if(!cached)return;
   activeTL=null;
+  _activeUnivIdx=-1; // reset univ selection
   const wasActive = activeMgr===key;
   activeMgr = wasActive ? null : key;
 
@@ -2128,6 +2554,7 @@ function toggleMgrFilter(key,name){
 function toggleTLFilter(key,name){
   const cached=mem[activeCk]; if(!cached)return;
   activeMgr=null;
+  _activeUnivIdx=-1; // reset univ selection
   const wasActive = activeTL===key;
   activeTL = wasActive ? null : key;
 
@@ -2149,10 +2576,14 @@ function toggleTLFilter(key,name){
   }
 }
 
-// ── Filter counsellor section by manager or TL ───────────────────────
+// ── Filter counsellor section by manager, TL, or university ─────────────────────
 function filterCounselSection(rows,label,type){
   const tag=$('counselFilterTag'),nameEl=$('counselFilterName');
-  if(label&&type){nameEl.textContent=(type==='mgr'?'Mgr: ':'TL: ')+label;tag.classList.add('show');}
+  if(label&&type){
+    const prefix = type==='mgr'?'Mgr: ':type==='tl'?'TL: ':'🏫 ';
+    nameEl.textContent=prefix+label;
+    tag.classList.add('show');
+  }
   else tag.classList.remove('show');
   const data=buildCounselMap(rows);
   if(!data.length){
@@ -2499,44 +2930,57 @@ function buildMgrIncMap(rows){
 
 function drawTLIncLeaderboard(rows){
   const sec=$('tlIncSection'); if(!sec) return;
-  // Only show for TL or manager role — never for public
   const role = currentUser ? currentUser.role : 'public';
   if(role!=='tl' && role!=='manager'){ sec.style.setProperty('display','none','important'); return; }
   const data=buildTLIncMap(rows);
   if(!data.length){ sec.style.setProperty('display','none','important'); return; }
   sec.style.setProperty('display','block','important');
-  renderIncLeaderboard(data,'tlInc','Team Leader Incentive');
+  _incRawData['tlInc'] = data.slice(); // store unsorted master copy
+  renderIncLeaderboard(_applySort('tlInc', data),'tlInc','Team Leader Incentive');
 }
 
 function drawMgrIncLeaderboard(rows){
   const sec=$('mgrIncSection'); if(!sec) return;
-  // Only show for manager role — never for public or TL
   const role = currentUser ? currentUser.role : 'public';
   if(role!=='manager'){ sec.style.setProperty('display','none','important'); return; }
   const data=buildMgrIncMap(rows);
   if(!data.length){ sec.style.setProperty('display','none','important'); return; }
   sec.style.setProperty('display','block','important');
-  renderIncLeaderboard(data,'mgrInc','Manager Incentive');
+  _incRawData['mgrInc'] = data.slice();
+  renderIncLeaderboard(_applySort('mgrInc', data),'mgrInc','Manager Incentive');
 }
 
 function renderIncLeaderboard(data, prefix, title){
   const section=$(prefix+'Section'); if(!section) return;
   const total=data.reduce((s,x)=>s+x.incentive,0);
-  const maxInc=data[0].incentive;
+  const maxInc=Math.max(...data.map(x=>x.incentive),1);
   const titleEl=$(prefix+'Title');
   const totalEl=$(prefix+'Total');
   const chartEl=$(prefix+'Chart');
+  const subEl  = document.getElementById(prefix+'SortSub');
   if(titleEl) titleEl.textContent='💰 '+title+' Leaderboard';
   if(totalEl) totalEl.textContent='₹'+fmtInc(total);
 
+  // Update subtitle to reflect current sort
+  if(subEl){
+    const st = _incSort[prefix]||{sort:'inc',dir:'desc'};
+    const sortName = st.sort==='inc' ? 'incentive' : 'admissions';
+    const dirName  = st.dir==='desc' ? 'highest first' : 'lowest first';
+    subEl.textContent = `Sorted by ${sortName} · ${dirName}`;
+  }
+
+  const isAsc = (_incSort[prefix]||{}).dir === 'asc';
   const rCls=['r1','r2','r3'], rIco=['🥇','🥈','🥉'];
+  // For ascending, medal emojis are reversed (lowest = best)
+  const rIcoAsc=['🔺','▲','△'];
   let html='';
   for(let i=0;i<data.length;i++){
     const d=data[i];
-    const rc=i<3?rCls[i]:'rn', ri=i<3?rIco[i]:(i+1);
+    const rc=i<3?rCls[i]:'rn';
+    const ri=i<3?(isAsc?rIcoAsc[i]:rIco[i]):(i+1);
     const grad=INC_GRD[i%INC_GRD.length];
-    html+=`<div class="inc-row">`;
-    html+=`<div class="inc-rank ${rc}">${ri}</div>`;
+    html+=`<div class="inc-row" style="animation:fadeUp .22s ease both ${i*28}ms">`;
+    html+=`<div class="inc-rank ${rc}${isAsc&&i<3?' sorted-asc':''}">${ri}</div>`;
     html+=`<div class="inc-name"><span class="inc-name-main" title="${d.name}">${d.name}</span><span class="inc-name-adm">${d.count} admissions</span></div>`;
     html+=`<div class="inc-track-wrap"><div class="inc-track"><div class="inc-bar" id="${prefix}b${i}" style="background:${grad};"></div></div><div class="inc-overlay"><span class="inc-ol-adm">${d.count} adm</span><span class="inc-ol-amt">₹${fmtInc(d.incentive)}</span></div></div>`;
     html+=`<div class="inc-stats"><span class="inc-stat-amt">₹${fmtInc(d.incentive)}</span><span class="inc-stat-adm">${d.count} adm</span></div>`;
@@ -2553,22 +2997,36 @@ function renderIncLeaderboard(data, prefix, title){
 }
 
 function drawIncLeaderboard(data){
-  const withInc=data.filter(c=>c.incentive>0).sort((a,b)=>b.incentive-a.incentive);
+  const withInc=data.filter(c=>c.incentive>0);
   const sec=$('incSection');
   if(!withInc.length){ sec.style.display='none'; return; }
   sec.style.display='block';
+  _incRawData['inc'] = withInc.slice(); // store master copy
+  const sorted = _applySort('inc', withInc);
+  _renderCounselIncChart(sorted);
+}
 
-  const maxInc=withInc[0].incentive;
-  const totInc=withInc.reduce((a,b)=>a+b.incentive,0);
+function _renderCounselIncChart(sorted){
+  const maxInc=Math.max(...sorted.map(x=>x.incentive),1);
+  const totInc=sorted.reduce((a,b)=>a+b.incentive,0);
   $('incTotal').textContent='₹'+fmtInc(totInc);
 
-  const rCls=['r1','r2','r3'], rIco=['🥇','🥈','🥉'];
+  const subEl=document.getElementById('incSortSub');
+  if(subEl){
+    const st=_incSort['inc']||{sort:'inc',dir:'desc'};
+    subEl.textContent=`Sorted by ${st.sort==='inc'?'incentive':'admissions'} · ${st.dir==='desc'?'highest first':'lowest first'}`;
+  }
+
+  const isAsc=(_incSort['inc']||{}).dir==='asc';
+  const rCls=['r1','r2','r3'],rIco=['🥇','🥈','🥉'],rIcoAsc=['🔺','▲','△'];
   let html='';
-  for(let i=0,L=withInc.length;i<L;i++){
-    const c=withInc[i];
-    const rc=i<3?rCls[i]:'rn', ri=i<3?rIco[i]:(i+1), grad=INC_GRD[i%INC_GRD.length];
-    html+=`<div class="inc-row">`;
-    html+=`<div class="inc-rank ${rc}">${ri}</div>`;
+  for(let i=0,L=sorted.length;i<L;i++){
+    const c=sorted[i];
+    const rc=i<3?rCls[i]:'rn';
+    const ri=i<3?(isAsc?rIcoAsc[i]:rIco[i]):(i+1);
+    const grad=INC_GRD[i%INC_GRD.length];
+    html+=`<div class="inc-row" style="animation:fadeUp .22s ease both ${i*28}ms">`;
+    html+=`<div class="inc-rank ${rc}${isAsc&&i<3?' sorted-asc':''}">${ri}</div>`;
     html+=`<div class="inc-name"><span class="inc-name-main" title="${c.name}">${c.name}</span><span class="inc-name-adm">${c.count} admissions</span></div>`;
     html+=`<div class="inc-track-wrap"><div class="inc-track"><div class="inc-bar" id="incb${i}" style="background:${grad};"></div></div><div class="inc-overlay"><span class="inc-ol-adm">${c.count} adm</span><span class="inc-ol-amt">₹${fmtInc(c.incentive)}</span></div></div>`;
     html+=`<div class="inc-stats"><span class="inc-stat-amt">₹${fmtInc(c.incentive)}</span><span class="inc-stat-adm">${c.count} adm</span></div>`;
@@ -2577,12 +3035,72 @@ function drawIncLeaderboard(data){
   $('incChart').innerHTML=html;
 
   requestAnimationFrame(()=>{
-    for(let i=0;i<withInc.length;i++){const e=$f('incb'+i);if(e){e.style.transition='none';e.style.transform='scaleX(0)';}}
+    for(let i=0;i<sorted.length;i++){const e=$f('incb'+i);if(e){e.style.transition='none';e.style.transform='scaleX(0)';}}
     requestAnimationFrame(()=>{
-      for(let i=0;i<withInc.length;i++){const e=$f('incb'+i);if(e){e.style.transition='';e.style.transform=`scaleX(${withInc[i].incentive/maxInc})`;}}
+      for(let i=0;i<sorted.length;i++){const e=$f('incb'+i);if(e){e.style.transition='';e.style.transform=`scaleX(${sorted[i].incentive/maxInc})`;}}
     });
   });
 }
+
+// ═══════════════════════════════════════════════════════
+// INCENTIVE SORT STATE + HANDLERS
+// ═══════════════════════════════════════════════════════
+
+// Sort state per panel: { sort: 'inc'|'adm', dir: 'desc'|'asc' }
+const _incSort    = { inc:{sort:'inc',dir:'desc'}, tlInc:{sort:'inc',dir:'desc'}, mgrInc:{sort:'inc',dir:'desc'} };
+const _incRawData = { inc:[], tlInc:[], mgrInc:[] }; // master (unsorted) copies
+
+function _applySort(panel, data){
+  const st = _incSort[panel] || {sort:'inc', dir:'desc'};
+  const key = st.sort === 'adm' ? 'count' : 'incentive';
+  const mul = st.dir === 'asc' ? 1 : -1;
+  return data.slice().sort((a,b) => (a[key]-b[key]) * mul);
+}
+
+// Delegated click handler — one listener on the whole card
+document.addEventListener('click', e=>{
+  const btn = e.target.closest('.inc-sort-btn');
+  if(!btn) return;
+  const panel = btn.dataset.panel;
+  const sort  = btn.dataset.sort;
+  const dir   = btn.dataset.dir;
+  if(!panel || !sort || !dir) return;
+
+  // Update state
+  _incSort[panel] = {sort, dir};
+
+  // Update active button styling in this group
+  const group = document.getElementById(panel+'SortGroup');
+  if(group){
+    group.querySelectorAll('.inc-sort-btn').forEach(b=>{
+      const isActive = b.dataset.sort===sort && b.dataset.dir===dir;
+      b.classList.toggle('active', isActive);
+      b.classList.toggle('asc',   isActive && dir==='asc');
+    });
+  }
+
+  // Re-render with new sort — animate the chart out → sort → in
+  if(panel === 'inc'){
+    const raw = _incRawData['inc'];
+    if(!raw.length) return;
+    const chartEl = $('incChart');
+    if(chartEl){ chartEl.style.opacity='0.35'; chartEl.style.transition='opacity .15s'; }
+    setTimeout(()=>{
+      _renderCounselIncChart(_applySort('inc', raw));
+      if(chartEl){ chartEl.style.opacity='1'; }
+    }, 120);
+  } else {
+    const raw = _incRawData[panel];
+    if(!raw.length) return;
+    const chartEl = document.getElementById(panel+'Chart');
+    const titleMap = { tlInc:'Team Leader Incentive', mgrInc:'Manager Incentive' };
+    if(chartEl){ chartEl.style.opacity='0.35'; chartEl.style.transition='opacity .15s'; }
+    setTimeout(()=>{
+      renderIncLeaderboard(_applySort(panel, raw), panel, titleMap[panel]||'');
+      if(chartEl){ chartEl.style.opacity='1'; }
+    }, 120);
+  }
+},{passive:true});
 
 // ═══════════════════════════════════════════════════════
 // TABS
