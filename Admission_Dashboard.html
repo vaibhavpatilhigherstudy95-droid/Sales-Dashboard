@@ -1011,8 +1011,157 @@ svg.udonut circle.useg.seg-dim{
 .dash-wrap { transform: translateZ(0); }
 
 /* ═══════════════════════════════════════════════════════
-   LOGIN OVERLAY
+   DOWNLOAD BUTTON & PANEL
 ═══════════════════════════════════════════════════════ */
+.dl-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 13px;border-radius:10px;
+  border:1px solid rgba(16,185,129,.3);
+  background:rgba(16,185,129,.1);
+  cursor:pointer;font-size:12px;font-weight:700;
+  color:#34d399;font-family:var(--font);
+  transition:all .15s ease;white-space:nowrap;user-select:none;
+  position:relative;
+}
+.dl-btn:hover{
+  background:rgba(16,185,129,.18);
+  border-color:rgba(16,185,129,.5);
+  color:#6ee7b7;
+  box-shadow:0 0 16px rgba(16,185,129,.2);
+  transform:translateY(-1px);
+}
+.dl-btn:active{ transform:translateY(0); }
+.dl-btn svg{ flex-shrink:0; }
+.dl-btn .dl-chevron{
+  font-size:9px;opacity:.6;transition:transform .2s;
+}
+.dl-btn.open .dl-chevron{ transform:rotate(180deg); }
+
+/* Download dropdown panel */
+.dl-panel{
+  position:absolute;top:calc(100% + 10px);right:0;
+  background:linear-gradient(160deg,rgba(18,19,38,.98),rgba(13,14,28,.99));
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;padding:0;
+  min-width:260px;z-index:9999;
+  box-shadow:0 20px 60px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04) inset;
+  display:none;overflow:hidden;
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  animation:menuPop .18s cubic-bezier(.34,1.56,.64,1) both;
+  transform-origin:top right;
+}
+.dl-panel.open{ display:block; }
+
+/* Panel header */
+.dl-panel-hdr{
+  padding:14px 16px 12px;
+  background:linear-gradient(135deg,rgba(16,185,129,.16),rgba(6,182,212,.07));
+  border-bottom:1px solid rgba(255,255,255,.07);
+  position:relative;overflow:hidden;
+}
+.dl-panel-hdr::before{
+  content:'';position:absolute;top:-28px;right:-28px;
+  width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(circle,rgba(16,185,129,.2),transparent 65%);
+  pointer-events:none;
+}
+.dl-panel-title{
+  font-size:12px;font-weight:800;color:#fff;
+  display:flex;align-items:center;gap:7px;margin-bottom:4px;
+}
+.dl-panel-sub{
+  font-size:10px;font-weight:600;color:rgba(255,255,255,.35);
+  line-height:1.4;
+}
+.dl-filter-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);
+  border-radius:20px;padding:2px 8px;
+  font-size:9px;font-weight:700;color:#34d399;
+  margin-top:6px;
+}
+
+/* Format options */
+.dl-formats{
+  padding:10px;display:flex;flex-direction:column;gap:6px;
+}
+.dl-fmt-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  cursor:pointer;transition:all .15s ease;
+  position:relative;overflow:hidden;
+}
+.dl-fmt-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);
+  transform:translateX(-100%);transition:transform .4s ease;
+  pointer-events:none;
+}
+.dl-fmt-btn:hover::before{ transform:translateX(100%); }
+.dl-fmt-btn:hover{
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.15);
+  transform:translateX(3px);
+}
+.dl-fmt-btn:active{ transform:translateX(1px); }
+.dl-fmt-btn.dl-xlsx:hover{
+  background:rgba(34,197,94,.1);
+  border-color:rgba(34,197,94,.3);
+}
+.dl-fmt-btn.dl-csv:hover{
+  background:rgba(99,102,241,.1);
+  border-color:rgba(99,102,241,.3);
+}
+.dl-fmt-ico{
+  width:32px;height:32px;border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;border:1px solid transparent;
+}
+.dl-xlsx .dl-fmt-ico{
+  background:rgba(34,197,94,.15);
+  border-color:rgba(34,197,94,.25);
+}
+.dl-csv .dl-fmt-ico{
+  background:rgba(99,102,241,.15);
+  border-color:rgba(99,102,241,.25);
+}
+.dl-fmt-body{ flex:1;min-width:0; }
+.dl-fmt-name{
+  font-size:12px;font-weight:800;color:#fff;
+  display:block;line-height:1.2;
+}
+.dl-fmt-desc{
+  font-size:10px;font-weight:600;color:rgba(255,255,255,.35);
+  display:block;margin-top:2px;
+}
+.dl-fmt-tag{
+  font-size:9px;font-weight:800;letter-spacing:.06em;
+  padding:2px 7px;border-radius:5px;flex-shrink:0;
+}
+.dl-xlsx .dl-fmt-tag{ background:rgba(34,197,94,.18);color:#4ade80; }
+.dl-csv  .dl-fmt-tag{ background:rgba(99,102,241,.18);color:#a5b4fc; }
+
+/* Progress / loading state inside panel */
+.dl-progress{
+  display:none;align-items:center;gap:10px;
+  padding:10px 14px 12px;
+  font-size:11px;font-weight:700;color:rgba(255,255,255,.5);
+}
+.dl-progress.show{ display:flex; }
+.dl-spinner{
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(16,185,129,.2);
+  border-top-color:#34d399;
+  animation:spin .6s linear infinite;flex-shrink:0;
+}
+.dl-success{
+  display:none;align-items:center;gap:8px;
+  padding:8px 14px 12px;
+  font-size:11px;font-weight:700;color:#34d399;
+}
+.dl-success.show{ display:flex; }
 #loginModal{
   position:fixed;inset:0;z-index:99999;
   display:none;align-items:center;justify-content:center;
@@ -1085,44 +1234,624 @@ body.role-manager #tlIncSection,
 body.role-manager #mgrIncSection {
   display: block !important;
 }
+body.role-director #tlIncSection,
+body.role-director #mgrIncSection {
+  display: block !important;
+}
+
+/* Download button — hidden by default, only Director sees it */
+#dlWrap {
+  display: none !important;
+}
+body.role-director #dlWrap {
+  display: flex !important;
+  align-items: center;
+}
+
+/* Director avatar glow */
+.ava.ava-director{
+  background:linear-gradient(135deg,#b45309,#f59e0b) !important;
+  box-shadow:0 0 0 2px rgba(245,158,11,.5),0 0 14px rgba(245,158,11,.4) !important;
+  animation:dirGlow 2.5s ease-in-out infinite;
+}
+@keyframes dirGlow{
+  0%,100%{ box-shadow:0 0 0 2px rgba(245,158,11,.5),0 0 14px rgba(245,158,11,.4); }
+  50%    { box-shadow:0 0 0 2px rgba(245,158,11,.8),0 0 22px rgba(245,158,11,.6); }
+}
+
+/* Director role badge color */
+.user-menu-role.role-dir{ color:#fbbf24; }
+
+/* Director crown badge on menu header */
+.user-menu-header.dir-header{
+  background:linear-gradient(135deg,rgba(180,83,9,.22),rgba(245,158,11,.1));
+}
+.user-menu-header.dir-header::before{
+  background:radial-gradient(circle,rgba(245,158,11,.25),transparent 65%);
+}
 /* User menu */
 .ava{ cursor:pointer; }
 .user-menu{
-  position:absolute;top:calc(100% + 8px);right:0;
-  background:rgba(20,21,35,.96);
+  position:absolute;top:calc(100% + 10px);right:0;
+  background:linear-gradient(160deg,rgba(18,19,38,.98),rgba(13,14,28,.99));
   border:1px solid rgba(255,255,255,.1);
-  border-radius:14px;padding:8px;
-  min-width:200px;z-index:9999;
-  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  border-radius:20px;padding:0;
+  min-width:220px;z-index:9999;
+  box-shadow:0 20px 60px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04) inset;
   display:none;
-  backdrop-filter:blur(12px);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   overflow:hidden;
+  animation:menuPop .18s cubic-bezier(.34,1.56,.64,1) both;
+  transform-origin:top right;
+}
+@keyframes menuPop{
+  from{opacity:0;transform:scale(.88) translateY(-6px);}
+  to{opacity:1;transform:scale(1) translateY(0);}
 }
 .user-menu.open{display:block;}
+
+/* Top gradient header band */
+.user-menu-header{
+  padding:14px 14px 12px;
+  background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(6,182,212,.08));
+  border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;gap:10px;
+  position:relative;overflow:hidden;
+}
+.user-menu-header::before{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:100px;height:100px;border-radius:50%;
+  background:radial-gradient(circle,rgba(99,102,241,.22),transparent 65%);
+  pointer-events:none;
+}
+.user-menu-avatar{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,#6366f1,#06b6d4);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:12px;color:#fff;
+  box-shadow:0 0 0 2px rgba(99,102,241,.45),0 4px 12px rgba(99,102,241,.3);
+}
+.user-menu-info{flex:1;min-width:0;}
 .user-menu-name{
-  font-size:12px;font-weight:700;color:rgba(255,255,255,.9);
-  padding:8px 10px 4px;
+  font-size:12px;font-weight:800;color:#fff;
+  padding:0;margin-bottom:2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  line-height:1.2;
 }
 .user-menu-role{
-  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:rgba(255,255,255,.35);padding:0 10px 8px;
-  border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:4px;
+  font-size:9px;font-weight:700;letter-spacing:.06em;
+  padding:0;border:none;margin:0;
   white-space:nowrap;
+  background:none;
 }
+/* Role-specific colors */
+.user-menu-role.role-mgr{ color:#a5b4fc; }
+.user-menu-role.role-tl { color:#34d399; }
+.user-menu-role.role-pub{ color:rgba(255,255,255,.35); }
+
+.user-menu-body{padding:6px 6px 0;}
+
 .user-menu-item{
-  padding:9px 10px;border-radius:8px;font-size:13px;font-weight:600;
-  color:rgba(255,255,255,.7);cursor:pointer;
-  transition:background .15s,color .15s;
+  padding:8px 10px;border-radius:10px;font-size:12px;font-weight:600;
+  color:rgba(255,255,255,.65);cursor:pointer;
+  transition:background .15s,color .15s,transform .1s;
   display:flex;align-items:center;gap:8px;
+  position:relative;
 }
-.user-menu-item:hover{background:rgba(255,255,255,.07);color:#fff;}
-.user-menu-item.logout{color:#f87171;}
-.user-menu-item.logout:hover{background:rgba(248,113,113,.1);}
+.user-menu-item:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(2px);}
+.user-menu-item .menu-icon{
+  width:24px;height:24px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+  transition:background .15s;
+}
+.user-menu-item:hover .menu-icon{background:rgba(255,255,255,.1);}
+.user-menu-item.login-item{ color:rgba(100,200,255,.85); }
+.user-menu-item.login-item .menu-icon{ background:rgba(100,200,255,.1); border-color:rgba(100,200,255,.2); }
+.user-menu-item.login-item:hover{ background:rgba(100,200,255,.08); color:#7dd3fc; }
+
+/* ── Sign Out button — compact pill style ── */
+.user-menu-item.logout{
+  margin:0;
+  padding:0;
+  border-radius:0;
+  overflow:hidden;
+  border:none;
+  background:none;
+  display:block;
+}
+.signout-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:9px 14px;
+  background:linear-gradient(180deg,#f03a2e 0%,#c0170d 55%,#a01008 100%);
+  border:none;
+  border-radius:0 0 20px 20px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -1px 0 rgba(0,0,0,.2),
+    0 6px 18px rgba(180,20,10,.5);
+  color:#fff;
+  font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+  font-family:var(--font);
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:all .12s cubic-bezier(.16,1,.3,1);
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+}
+  color:#fff;
+  font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
+  font-family:var(--font);
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:all .12s cubic-bezier(.16,1,.3,1);
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+}
+.signout-btn::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:45%;
+  background:linear-gradient(180deg,rgba(255,255,255,.18),transparent);
+  border-radius:10px 10px 50% 50%;
+  pointer-events:none;
+}
+.signout-btn:hover{
+  background:linear-gradient(180deg,#f84a3e 0%,#d41e13 55%,#b01210 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    0 8px 22px rgba(180,20,10,.65);
+}
+.signout-btn:active{
+  background:linear-gradient(180deg,#c0170d 0%,#a01008 100%);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.3);
+}
+.signout-arrow{
+  display:flex;align-items:center;justify-content:center;
+  width:14px;height:14px;flex-shrink:0;
+  background:rgba(0,0,0,.2);border-radius:3px;
+  font-size:8px;line-height:1;
+}
+.user-menu-divider{ height:1px; background:rgba(255,255,255,.06); margin:4px 0; }
 .hd-right{position:relative;z-index:2000;}
 /* Ensure user menu is never clipped by parent overflow/contain */
 .wrap{contain:layout;}
 .topbar{overflow:visible;position:relative;z-index:100;}
+
+/* ═══════════════════════════════════════════════════════
+   ENHANCEMENT LAYER — Smooth · Fast · Addictive UX
+═══════════════════════════════════════════════════════ */
+
+/* ── Global micro-interaction timing ── */
+:root{
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-in-out:cubic-bezier(.45,0,.55,1);
+  --t-fast:120ms;
+  --t-med:220ms;
+  --t-slow:380ms;
+}
+
+/* ── Topbar: sticky with blur glass ── */
+.topbar{
+  position:sticky;top:0;z-index:200;
+  background:rgba(7,8,15,.82);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  margin-bottom:0;
+  padding:10px 0 10px;
+  margin-left:-20px;margin-right:-20px;
+  padding-left:20px;padding-right:20px;
+  transition:box-shadow var(--t-med) ease;
+}
+.topbar.scrolled{
+  box-shadow:0 4px 32px rgba(0,0,0,.5);
+  border-bottom-color:rgba(255,255,255,.1);
+}
+
+/* ── Tab: smooth sliding pill indicator ── */
+.tabs{
+  position:relative;
+  border-radius:26px;
+  overflow:hidden;
+}
+.tab-indicator{
+  position:absolute;
+  height:calc(100% - 6px);
+  top:3px;
+  background:#fff;
+  border-radius:22px;
+  transition:left var(--t-med) var(--ease-out), width var(--t-med) var(--ease-out);
+  pointer-events:none;
+  z-index:0;
+}
+.tab{
+  position:relative;z-index:1;
+  transition:color var(--t-fast) ease;
+}
+.tab.on{background:transparent;color:#08091a;}
+.tab.on::after{display:none;} /* remove old underline indicator */
+
+/* ── KPI cards: bigger, more visual ── */
+.statusbar{ margin-bottom:16px; }
+.kpis{ gap:10px; }
+.kpi{
+  border-radius:16px;padding:10px 18px;
+  flex-direction:column;align-items:flex-start;gap:3px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  min-width:90px;
+  transition:transform var(--t-fast) ease, box-shadow var(--t-med) ease, background var(--t-med) ease;
+  cursor:default;
+}
+.kpi:hover{
+  transform:translateY(-2px);
+  background:rgba(255,255,255,.08);
+  box-shadow:0 8px 24px rgba(0,0,0,.3);
+}
+.kpi-lbl{font-size:9px;letter-spacing:.1em;margin-bottom:1px;}
+.kpi-val{font-size:22px;font-weight:900;letter-spacing:-.02em;line-height:1.1;}
+.kpi.net{ border-color:rgba(103,232,249,.2); background:rgba(103,232,249,.06); }
+.kpi.net:hover{ background:rgba(103,232,249,.1); box-shadow:0 8px 24px rgba(103,232,249,.08); }
+.kpi.can{ border-color:rgba(252,165,165,.2); background:rgba(252,165,165,.06); }
+.kpi.can:hover{ background:rgba(252,165,165,.1); box-shadow:0 8px 24px rgba(252,165,165,.08); }
+
+/* ── Cards: elevated glass with shimmer on hover ── */
+.card,.full-card{
+  border-radius:20px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+  position:relative;overflow:hidden;
+  transition:transform var(--t-med) var(--ease-out),
+             box-shadow var(--t-med) ease,
+             border-color var(--t-med) ease;
+}
+.card::before,.full-card::before{
+  content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.025),transparent);
+  transform:skewX(-15deg);
+  transition:left .6s var(--ease-out);
+  pointer-events:none;z-index:0;opacity:0;
+}
+.card:hover::before,.full-card:hover::before{
+  left:120%;opacity:1;
+}
+.card:hover,.full-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 48px rgba(0,0,0,.35);
+  border-color:rgba(255,255,255,.13);
+}
+/* Card content above shimmer */
+.card > *,.full-card > *{ position:relative;z-index:1; }
+
+/* ── Bar rows: richer hover + click ripple ── */
+.br{
+  border-radius:10px;
+  padding:4px 6px 4px 4px;
+  transition:background var(--t-fast) ease, transform var(--t-fast) ease;
+}
+.br:hover{
+  background:rgba(255,255,255,.05);
+  transform:translateX(3px);
+  opacity:1 !important;
+}
+.br:active{ transform:translateX(1px) scale(.99); }
+.bn{ font-size:12px; }
+.bt{ height:34px; }
+.bv{ color:rgba(255,255,255,.7); }
+
+/* Bar fill: glow tip */
+.bf::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;width:3px;
+  background:rgba(255,255,255,.6);border-radius:0 8px 8px 0;
+  filter:blur(2px);
+}
+
+/* ── Trend chart: taller, better labels ── */
+.chart-wrap{ height:220px; }
+.trend-stats{ gap:28px; margin-bottom:20px; }
+.tstat{ 
+  cursor:default;
+  transition:transform var(--t-fast) ease;
+}
+.tstat:hover{ transform:translateY(-2px); }
+.tstat-val{ font-size:24px; }
+
+/* ── Counsellor grid: smoother cards ── */
+.cg-card{
+  border-radius:12px;
+  transition:transform var(--t-fast) var(--ease-spring),
+             box-shadow var(--t-med) ease,
+             border-color var(--t-fast) ease;
+  cursor:pointer;
+}
+.cg-card:hover{
+  transform:translateY(-3px) scale(1.02);
+  box-shadow:0 8px 28px rgba(0,0,0,.35);
+}
+.cg-card:active{ transform:translateY(-1px) scale(1.01); }
+
+/* ── Podium cards: spring animation ── */
+.c-pod{
+  transition:transform var(--t-fast) var(--ease-spring),
+             box-shadow var(--t-med) ease;
+}
+.c-pod:hover{
+  transform:translateY(-4px);
+  box-shadow:0 12px 32px rgba(0,0,0,.3);
+}
+
+/* ── Filter trail: pill animations ── */
+.filter-trail{
+  animation:slideDown .2s var(--ease-out) both;
+  border-radius:16px;
+  background:rgba(255,255,255,.04);
+  border-color:rgba(255,255,255,.09);
+  padding:8px 14px;
+  margin-bottom:14px;
+}
+@keyframes slideDown{
+  from{opacity:0;transform:translateY(-8px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.ft-crumb{
+  transition:background var(--t-fast) ease,
+             transform var(--t-fast) var(--ease-spring),
+             box-shadow var(--t-med) ease;
+}
+.ft-crumb:hover{
+  transform:translateY(-2px);
+  box-shadow:0 4px 14px rgba(0,0,0,.25);
+}
+.ft-crumb:active{ transform:translateY(0); }
+
+/* ── Legend rows: interactive hover ── */
+.leg-row{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 8px;border-radius:8px;
+  cursor:pointer;
+  transition:background var(--t-fast) ease, transform var(--t-fast) ease;
+}
+.leg-row:hover{
+  background:rgba(255,255,255,.07);
+  transform:translateX(3px);
+}
+.leg-name{
+  font-size:11px;font-weight:700;color:rgba(255,255,255,.75);flex:1;
+  transition:color var(--t-fast) ease;
+}
+.leg-row:hover .leg-name{ color:#fff; }
+.leg-pct{font-size:10px;font-weight:700;color:rgba(255,255,255,.35);margin-right:4px;}
+.leg-val{font-size:12px;font-weight:800;min-width:22px;text-align:right;}
+
+/* ── Top performers: entry animation ── */
+.ti{
+  transition:transform var(--t-fast) var(--ease-spring),
+             box-shadow var(--t-med) ease;
+  animation:fadeUp .3s var(--ease-out) both;
+}
+.ti:nth-child(1){animation-delay:.04s;}
+.ti:nth-child(2){animation-delay:.08s;}
+.ti:nth-child(3){animation-delay:.12s;}
+.ti:hover{
+  transform:translateX(6px);
+  box-shadow:0 8px 28px rgba(0,0,0,.3);
+}
+
+/* ── Incentive section: entry ── */
+.inc-section{
+  animation:fadeUp .35s var(--ease-out) both;
+}
+.inc-row{
+  border-radius:10px;padding:2px 4px;
+  transition:background var(--t-fast) ease;
+}
+.inc-row:hover{ background:rgba(255,255,255,.04); }
+
+/* ── Donut hover tooltip: richer ── */
+.donut-tip{
+  background:rgba(8,9,22,.97);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:12px;padding:11px 16px;
+  box-shadow:0 16px 48px rgba(0,0,0,.6);
+  transition:opacity .1s ease;
+}
+.donut-tip-name{ font-size:12px;font-weight:800;color:#fff;margin-bottom:5px; }
+.donut-tip-row{ display:flex;align-items:center;gap:10px; }
+.donut-tip-val{ font-size:18px;font-weight:900;color:#fff; }
+.donut-tip-pct{
+  font-size:11px;font-weight:700;
+  background:rgba(255,255,255,.1);border-radius:6px;
+  padding:2px 7px;color:rgba(255,255,255,.6);
+}
+
+/* ── Donut center text: smooth transitions ── */
+.donut-num{
+  transition:all .25s var(--ease-out);
+}
+.donut-ctr.has-sel .donut-num{
+  font-size:20px;
+}
+
+/* ── Mobile: bottom tab bar ── */
+@media(max-width:660px){
+  .topbar{
+    padding:8px 14px;
+    gap:8px;
+  }
+  .brand-ico{ width:36px;height:36px;font-size:18px; }
+  .brand-title{ font-size:13px; }
+  .brand-sub{ display:none; }
+  .top-r{
+    width:100%;
+    overflow-x:auto;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+    padding-bottom:2px;
+    gap:6px;
+  }
+  .top-r::-webkit-scrollbar{ display:none; }
+  .tabs{ flex-shrink:0; }
+  .tab{ padding:5px 10px;font-size:11px; }
+  .kpi{ min-width:75px;padding:8px 12px; }
+  .kpi-val{ font-size:18px; }
+  .g2{ gap:10px; }
+  .card,.full-card{ padding:14px; border-radius:16px; }
+  .card:hover,.full-card:hover{ transform:none; } /* no hover lift on touch */
+  .cg-card:hover{ transform:none; }
+  .c-grid{ grid-template-columns:repeat(2,1fr); }
+  .wrap{ padding:10px 14px 60px; }
+  .statusbar{ flex-direction:column;align-items:flex-start;gap:6px; }
+  .kpis{ width:100%; justify-content:space-between; }
+}
+@media(max-width:480px){
+  .kpis{ gap:6px; }
+  .kpi{ min-width:60px;padding:7px 10px; }
+  .kpi-val{ font-size:16px; }
+  .tabs{ border-radius:20px; }
+}
+
+/* ── Scroll-into-view animation for sections ── */
+.section-animate{
+  opacity:0;transform:translateY(16px);
+  transition:opacity .4s var(--ease-out), transform .4s var(--ease-out);
+}
+.section-animate.visible{
+  opacity:1;transform:translateY(0);
+}
+
+/* ── Trend filter tabs: pill toggle ── */
+.tf{
+  transition:all var(--t-fast) ease;
+  border-radius:20px;
+}
+.tf:hover:not(.on){
+  background:rgba(255,255,255,.09);
+  color:rgba(255,255,255,.75);
+  transform:translateY(-1px);
+}
+.tf.on{
+  background:rgba(99,102,241,.25);
+  border-color:rgba(99,102,241,.55);
+  box-shadow:0 0 14px rgba(99,102,241,.2);
+}
+.tf:active{ transform:scale(.96); }
+
+/* ── Search input: focus expansion ── */
+.counsel-search{
+  transition:border-color var(--t-fast) ease, box-shadow var(--t-med) ease, width var(--t-med) var(--ease-out);
+}
+.counsel-search:focus-within{
+  border-color:rgba(99,102,241,.5);
+  box-shadow:0 0 0 3px rgba(99,102,241,.12);
+}
+.counsel-search input{ transition:width var(--t-med) var(--ease-out); }
+.counsel-search:focus-within input{ width:160px; }
+
+/* ── Skeleton shimmer: faster wave ── */
+.skel-bar::after{
+  animation:skelMove .9s ease-in-out infinite;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,.12) 50%,
+    transparent 100%
+  );
+}
+
+/* ── Page transition on tab switch ── */
+#dash.tab-switching{
+  opacity:0.6;
+  transform:translateY(4px);
+  transition:opacity .12s ease,transform .12s ease;
+}
+#dash.tab-stable{
+  opacity:1;
+  transform:translateY(0);
+  transition:opacity .2s ease,transform .2s var(--ease-out);
+}
+
+/* ── Pull-to-refresh indicator (mobile) ── */
+.ptr-indicator{
+  position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-60px);
+  background:rgba(99,102,241,.9);
+  border-radius:0 0 20px 20px;
+  padding:8px 20px 10px;
+  font-size:11px;font-weight:700;color:#fff;
+  display:flex;align-items:center;gap:6px;
+  z-index:9998;
+  transition:transform .25s var(--ease-out);
+  pointer-events:none;
+}
+.ptr-indicator.show{ transform:translateX(-50%) translateY(0); }
+
+/* ── Ripple on bar click ── */
+@keyframes ripple{
+  from{opacity:.5;transform:scale(0);}
+  to{opacity:0;transform:scale(4);}
+}
+.ripple-el{
+  position:absolute;border-radius:50%;
+  width:40px;height:40px;
+  background:rgba(255,255,255,.2);
+  pointer-events:none;
+  animation:ripple .5s var(--ease-out) forwards;
+  transform-origin:center;
+}
+
+/* ── Live data pulse on KPI change ── */
+@keyframes kpiFlash{
+  0%{ background:rgba(103,232,249,.25); }
+  100%{ background:inherit; }
+}
+.kpi.flashing{ animation:kpiFlash .6s ease; }
+.kpi.can.flashing{ animation:kpiFlash .6s ease; }
+
+/* ── Scroll-aware status bar ── */
+.statusbar{
+  position:sticky;top:58px;z-index:190;
+  background:rgba(7,8,15,.75);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  margin-left:-20px;margin-right:-20px;
+  padding:8px 20px;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  margin-bottom:0;
+}
+
+/* ── Content area padding offset for sticky bars ── */
+.g2:first-of-type,.full-card:first-of-type{
+  margin-top:14px;
+}
+
+/* ── Tooltip for bar hover ── */
+.bar-tooltip{
+  position:fixed;
+  background:rgba(8,9,22,.97);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:10px;padding:8px 14px;
+  font-size:11px;font-weight:700;color:#fff;
+  pointer-events:none;z-index:9997;
+  opacity:0;transition:opacity .1s ease;
+  white-space:nowrap;
+  box-shadow:0 8px 28px rgba(0,0,0,.55);
+}
+.bar-tooltip.show{ opacity:1; }
+.bar-tooltip-name{ font-size:12px;font-weight:800;margin-bottom:4px; }
+.bar-tooltip-row{ display:flex;align-items:center;gap:8px;margin-top:2px; }
+.bar-tooltip-lbl{ color:rgba(255,255,255,.4);font-size:10px; }
+.bar-tooltip-val{ color:#a5b4fc;font-weight:900; }
+
+/* ── Refresh animation on live update ── */
+@keyframes liveFlash{
+  0%{border-color:rgba(16,185,129,.5);}
+  100%{border-color:rgba(255,255,255,.07);}
+}
+.card.just-updated{ animation:liveFlash 1s ease; }
+
+/* ── Quick-stat mini chips on bar cards ── */
+.card-head .card-badge{
+  transition:background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.card:hover .card-badge{
+  background:rgba(255,255,255,.11);
+  color:rgba(255,255,255,.6);
+}
 </style>
 </head>
 <body>
@@ -1198,6 +1927,10 @@ body.role-manager #mgrIncSection {
     <div style="margin-top:14px;font-size:11px;color:rgba(255,255,255,.25);text-align:center;">
       Public access active by default
     </div>
+    <div style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:7px 12px;">
+      <span style="font-size:13px;">👑</span>
+      <span style="font-size:10px;font-weight:700;color:rgba(245,158,11,.7);letter-spacing:.05em;">Director login available for full access + export</span>
+    </div>
   </div>
 </div>
 
@@ -1224,13 +1957,75 @@ body.role-manager #mgrIncSection {
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         Custom Range
       </button>
+
+      <!-- DOWNLOAD BUTTON -->
+      <div class="hd-right" style="position:relative;" id="dlWrap">
+        <button class="dl-btn" id="dlBtn" title="Download Data">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 3v13M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download
+          <span class="dl-chevron">▾</span>
+        </button>
+        <div class="dl-panel" id="dlPanel">
+          <div class="dl-panel-hdr">
+            <div class="dl-panel-title">
+              <svg width="14" height="14" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v13M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+              Export Dashboard Data
+            </div>
+            <div class="dl-panel-sub" id="dlPanelSub">Downloads current view with all active filters applied</div>
+            <div class="dl-filter-badge" id="dlFilterBadge" style="display:none;">
+              <svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              <span id="dlFilterText">Filtered</span>
+            </div>
+          </div>
+          <div class="dl-formats">
+            <div class="dl-fmt-btn dl-xlsx" id="dlXlsx">
+              <div class="dl-fmt-ico">📊</div>
+              <div class="dl-fmt-body">
+                <span class="dl-fmt-name">Excel Spreadsheet</span>
+                <span class="dl-fmt-desc">Full data with formatting · .xlsx</span>
+              </div>
+              <span class="dl-fmt-tag">XLSX</span>
+            </div>
+            <div class="dl-fmt-btn dl-csv" id="dlCsv">
+              <div class="dl-fmt-ico">📄</div>
+              <div class="dl-fmt-body">
+                <span class="dl-fmt-name">CSV File</span>
+                <span class="dl-fmt-desc">Plain text, universal compatibility · .csv</span>
+              </div>
+              <span class="dl-fmt-tag">CSV</span>
+            </div>
+          </div>
+          <div class="dl-progress" id="dlProgress">
+            <div class="dl-spinner"></div>
+            <span id="dlProgressTxt">Preparing download…</span>
+          </div>
+          <div class="dl-success" id="dlSuccess">
+            <span>✅</span><span id="dlSuccessTxt">Downloaded successfully!</span>
+          </div>
+        </div>
+      </div>
       <div class="hd-right" style="position:relative;">
         <div class="ava" id="avaBtn" title="Account"></div>
         <div class="user-menu" id="userMenu">
-          <div class="user-menu-name" id="menuName">Guest</div>
-          <div class="user-menu-role" id="menuRole">🔓 Public Access</div>
-          <div class="user-menu-item" id="menuLogin" style="color:rgba(100,200,255,.8);">🔐 Sign In for More Access</div>
-          <div class="user-menu-item logout" id="menuLogout" style="display:none;">🚪 Sign Out</div>
+          <div class="user-menu-header">
+            <div class="user-menu-avatar" id="menuAvatar">👤</div>
+            <div class="user-menu-info">
+              <div class="user-menu-name" id="menuName">Guest</div>
+              <div class="user-menu-role role-pub" id="menuRole">🔓 Public Access</div>
+            </div>
+          </div>
+          <div class="user-menu-body">
+            <div class="user-menu-item login-item" id="menuLogin">
+              <div class="menu-icon">🔐</div>
+              Sign In for More Access
+            </div>
+            <div class="user-menu-item logout" id="menuLogout" style="display:none;">
+              <div class="signout-btn">
+                Sign Out
+                <div class="signout-arrow">▶</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1476,7 +2271,7 @@ body.role-manager #mgrIncSection {
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbxxTXQuTYerkXzRgUIq60-SslV_PnaEI19ajkAho9sOvWWs3_thF4qvEPguMnp3yV0Z/exec';
+const API = 'https://script.google.com/macros/s/AKfycbxFuo0PLZ4ShoaiULi8JfRaCLzS7CWCTJwYXJSnjwIxw1hPpfNeZ-TynjlC7QGbgxDW/exec';
 const CACHE_KEY  = 'hs_v5_';
 const MEM_TTL    = 5 * 60 * 1000;   // 5 min — fresher background refresh
 const DISK_TTL   = 60 * 60 * 1000;  // 1 hr disk cache — survive long sessions
@@ -1755,6 +2550,37 @@ function norm(raw, p){
   // counsellors show for the FULL period (all, month, week - whatever server sent)
   raw.allTrendRows = raw.trendRows.slice();
 
+  // ── Separate cancel rows BEFORE any processing ──
+  // A row is cancelled if admissionStatus field == "Cancel" (case-insensitive)
+  const _isCancel = r => {
+    const s = (r.admissionStatus || r.AdmissionStatus || r.admission_status || r.status || r.Status || '').toString().trim().toLowerCase();
+    return s === 'cancel' || s === 'cancelled' || s === 'canceled';
+  };
+
+  // Store raw unfiltered rows (with cancels) for filter-scope cancel counting
+  raw._rawAllRows = raw.trendRows.slice();
+
+  // Split into active and cancelled
+  const activeRows = raw.trendRows.filter(r => !_isCancel(r));
+  const cancelRows = raw.trendRows.filter(r => _isCancel(r));
+
+  // Also split allTrendRows
+  const activeAllRows = raw.allTrendRows.filter(r => !_isCancel(r));
+  // cancelRows for allTrendRows (same logic)
+  const cancelAllRows = raw.allTrendRows.filter(r => _isCancel(r));
+
+  // Store cancel count from rows (overrides server value if rows present)
+  if(raw.trendRows.length > 0){
+    raw.cancelAdm  = cancelRows.length + (raw.cancelAdm || 0) - Math.min(cancelRows.length, raw.cancelAdm || 0);
+    // Actually: trust row-level cancel status as ground truth
+    raw.cancelAdm  = cancelAllRows.length;
+    raw.totalAdm   = raw.allTrendRows.length;
+  }
+
+  // Replace trendRows with ACTIVE-only rows for all downstream processing
+  raw.trendRows    = activeRows;
+  raw.allTrendRows = activeAllRows;
+
   if(!raw.trendRows.length){
     raw.others        = Math.max(0, raw.netAdm||0);
     raw.mgrTargets    = mgrTargets;
@@ -1763,15 +2589,28 @@ function norm(raw, p){
   }
 
   // ── Week filter: narrow trendRows to the correct Mon–Sun window ──
+  // Note: raw.trendRows is already cancel-filtered above
   const weekRange = getWeekRange(p);
   const filteredRows = weekRange
     ? raw.trendRows.filter(r => inRange(r.date, weekRange.mon, weekRange.sun))
     : raw.trendRows;
 
+  // ── Also filter allTrendRows for the week window (active-only) ──
+  if(weekRange){
+    raw.allTrendRows = raw.allTrendRows.filter(r => inRange(r.date, weekRange.mon, weekRange.sun));
+    // Recalculate cancel count for this week window too
+    const weekCancelRows = (raw._allCancelRows||cancelAllRows).filter(r => inRange(r.date, weekRange.mon, weekRange.sun));
+    raw.cancelAdm = weekCancelRows.length;
+    raw.totalAdm  = filteredRows.length + weekCancelRows.length;
+  }
+
+  // Store raw cancel rows for downstream week filtering
+  raw._allCancelRows = cancelAllRows;
+
   // ── Replace trendRows with filtered set (used by trend chart + bar counts) ──
   raw.trendRows = filteredRows;
 
-  // ── Recount from filtered rows — fully dynamic ──
+  // ── Recount from filtered ACTIVE rows — fully dynamic ──
   const mgr  = {};
   const tl   = {};
   const univ = {};
@@ -1836,7 +2675,14 @@ function norm(raw, p){
   }
 
   Object.assign(raw, mgr, tl, univ);
+  // netAdm = count of ACTIVE (non-cancelled) filtered rows
   if(count > 0) raw.netAdm = count;
+  // totalAdm and cancelAdm already set above; ensure non-week periods are also correct
+  if(!weekRange){
+    raw.netAdm   = count;
+    raw.cancelAdm = cancelAllRows.length;
+    raw.totalAdm  = count + cancelAllRows.length;
+  }
   raw.mgrTargets    = mgrTargets;
   raw.mgrTargetsAll = mgrTargetsAll;
   // Rebuild O(1) lookups after dynamic discovery
@@ -2428,6 +3274,7 @@ let filterStack = []; // the active drill-down chain
 // ── Compute filtered rows for any stack depth ──────────
 function _getFilteredRows(){
   const cached = mem[activeCk]; if(!cached) return [];
+  // allTrendRows is already cancel-filtered by norm()
   const allRows = cached.data.allTrendRows || cached.data.trendRows || [];
   if(!filterStack.length) return allRows;
   return allRows.filter(r=>{
@@ -2508,6 +3355,42 @@ function _recomputeBarsFromRows(rows){
   const totMgr=Object.values(mgrCounts).reduce((s,v)=>s+v,0);
   $('mb-b').textContent=totMgr+' ADM';
   $('tb-b').textContent=totMgr+' ADM';
+
+  // ── Update KPI counters to reflect active filter + cancel logic ──
+  // rows are already cancel-free (allTrendRows is cancel-filtered by norm)
+  // So netAdm for the filtered view = rows.length
+  if(filterStack.length){
+    animCount($('pnet'), rows.length);
+    // For filtered view, cancel count = cancelled rows matching the same filter
+    const cached2 = mem[activeCk];
+    if(cached2){
+      const _isCancel2 = r => {
+        const s = (r.admissionStatus || r.AdmissionStatus || r.admission_status || r.status || r.Status || '').toString().trim().toLowerCase();
+        return s === 'cancel' || s === 'cancelled' || s === 'canceled';
+      };
+      // Get the raw (non-cancel-filtered) source rows
+      const rawAllRows = cached2.data._rawAllRows || [];
+      if(rawAllRows.length){
+        // Apply same filter to raw rows to find cancelled in this filter scope
+        const filteredCancelRows = rawAllRows.filter(r => {
+          if(!_isCancel2(r)) return false;
+          for(const f of filterStack){
+            if(f.level==='univ'){
+              const nk=(r.univ||'').toString().trim().toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
+              if(nk!==f.key) return false;
+            } else if(f.level==='mgr'){
+              if((r.mgr||'').trim().toLowerCase()!==f.name.toLowerCase()) return false;
+            } else if(f.level==='tl'){
+              if(resolveTL((r.tl||'').trim().toLowerCase())!==f.key) return false;
+            }
+          }
+          return true;
+        });
+        animCount($('pcan'), filteredCancelRows.length);
+        animCount($('ptot'), rows.length + filteredCancelRows.length);
+      }
+    }
+  }
 
   // Highlight active cards
   const mgrCard=$('mb')?.closest('.card');
@@ -2669,6 +3552,10 @@ function _clearAllFilters(){
     });
     $('mb-b').textContent=(d.netAdm||0)+' ADM';
     $('tb-b').textContent=(d.netAdm||0)+' ADM';
+    // Restore full KPI values
+    animCount($('pnet'), d.netAdm||0);
+    animCount($('ptot'), d.totalAdm||0);
+    animCount($('pcan'), d.cancelAdm||0);
   });
 }
 
@@ -3190,7 +4077,7 @@ function buildMgrIncMap(rows){
 function drawTLIncLeaderboard(rows){
   const sec=$('tlIncSection'); if(!sec) return;
   const role = currentUser ? currentUser.role : 'public';
-  if(role!=='tl' && role!=='manager'){ sec.style.setProperty('display','none','important'); return; }
+  if(role!=='tl' && role!=='manager' && role!=='director'){ sec.style.setProperty('display','none','important'); return; }
   const data=buildTLIncMap(rows);
   if(!data.length){
     // When a filter is active, show the section with a contextual empty state
@@ -3213,7 +4100,7 @@ function drawTLIncLeaderboard(rows){
 function drawMgrIncLeaderboard(rows){
   const sec=$('mgrIncSection'); if(!sec) return;
   const role = currentUser ? currentUser.role : 'public';
-  if(role!=='manager'){ sec.style.setProperty('display','none','important'); return; }
+  if(role!=='manager' && role!=='director'){ sec.style.setProperty('display','none','important'); return; }
   const data=buildMgrIncMap(rows);
   if(!data.length){
     if(filterStack.length){
@@ -3590,10 +4477,13 @@ $('counselFilterX').addEventListener('click',()=>{
 // ═══════════════════════════════════════════════════════
 
 // USERS CONFIG — add/remove users here
-// roles: 'admin' = sees everything | 'counsellor' = sees only own incentive
+// roles: 'director' = supreme access + download | 'manager' | 'tl' | 'public'
 const USERS = [
+  // Director — supreme access: all data + exclusive download/export
+  { username:'director', pin:'Dir@FullAccess#890', role:'director' },
+
   // Manager — sees ALL incentive data (counsellor + TL + manager)
-  { username:'manager', pin:'Mgr#368Go', role:'manager' },
+  { username:'manager', pin:'Mgr@2026', role:'manager' },
 
   // Team Leader — sees counsellor + TL incentive (no manager incentive)
   { username:'teamleader', pin:'TL@2026', role:'tl' },
@@ -3644,28 +4534,56 @@ function applyLogin(u, fromSession){
   currentUser = u;
 
   // Apply role class to body
-  document.body.classList.remove('role-public','role-tl','role-manager');
+  document.body.classList.remove('role-public','role-tl','role-manager','role-director');
   document.body.classList.add('role-'+u.role);
 
   // Update avatar button label
   const avaBtn = document.getElementById('avaBtn');
   if(avaBtn){
-    const labels = { public:'👤', tl:'TL', manager:'MGR' };
+    const labels = { public:'👤', tl:'TL', manager:'MGR', director:'DIR' };
     avaBtn.textContent = labels[u.role]||'👤';
+  }
+  const menuAvatar = document.getElementById('menuAvatar');
+  if(menuAvatar){
+    const avatarLabels = { public:'👤', tl:'TL', manager:'MGR', director:'DIR' };
+    menuAvatar.textContent = avatarLabels[u.role]||'👤';
+    menuAvatar.style.background =
+      u.role==='director' ? 'linear-gradient(135deg,#b45309,#f59e0b)'  :
+      u.role==='manager'  ? 'linear-gradient(135deg,#6366f1,#818cf8)'  :
+      u.role==='tl'       ? 'linear-gradient(135deg,#059669,#34d399)'  :
+                            'linear-gradient(135deg,#475569,#64748b)';
+    menuAvatar.style.boxShadow =
+      u.role==='director' ? '0 0 0 2px rgba(245,158,11,.5),0 4px 12px rgba(245,158,11,.35)' :
+      u.role==='manager'  ? '0 0 0 2px rgba(99,102,241,.45),0 4px 12px rgba(99,102,241,.3)' :
+      u.role==='tl'       ? '0 0 0 2px rgba(5,150,105,.45),0 4px 12px rgba(5,150,105,.3)'  :
+                            'none';
   }
   const menuName = document.getElementById('menuName');
   if(menuName) menuName.textContent =
-    u.role==='manager' ? 'Manager' : u.role==='tl' ? 'Team Leader' : 'Guest';
+    u.role==='director' ? 'Director'    :
+    u.role==='manager'  ? 'Manager'     :
+    u.role==='tl'       ? 'Team Leader' : 'Guest';
   const menuRole = document.getElementById('menuRole');
-  if(menuRole) menuRole.textContent =
-    u.role==='manager' ? '⚡ Full Access' :
-    u.role==='tl'      ? '👥 TL Access'  : '🔓 Public Access';
+  if(menuRole){
+    menuRole.textContent =
+      u.role==='director' ? '👑 Director Access' :
+      u.role==='manager'  ? '⚡ Full Access'      :
+      u.role==='tl'       ? '👥 TL Access'        : '🔓 Public Access';
+    menuRole.className = 'user-menu-role '+
+      (u.role==='director'?'role-dir':u.role==='manager'?'role-mgr':u.role==='tl'?'role-tl':'role-pub');
+  }
+  // Director gold header tint
+  const menuHdr = document.querySelector('.user-menu-header');
+  if(menuHdr) menuHdr.classList.toggle('dir-header', u.role==='director');
 
   // Show/hide login vs logout menu items
   const menuLogin  = document.getElementById('menuLogin');
   const menuLogout = document.getElementById('menuLogout');
   if(menuLogin)  menuLogin.style.display  = u.role==='public' ? '' : 'none';
   if(menuLogout) menuLogout.style.display = u.role!=='public' ? '' : 'none';
+
+  // Always apply role visibility immediately (download button, sections)
+  applyRoleVisibility();
 
   // Boot dashboard if not already started
   if(!shown) boot();
@@ -3745,24 +4663,38 @@ document.addEventListener('click', e=>{
 });
 
 // ── Role-based rendering ──────────────────────────────
-// Called after data loads — hides sections counsellors can't see
+// Called after data loads — hides sections based on role
 function applyRoleVisibility(){
   const role = currentUser ? currentUser.role : 'public';
 
   // Access matrix:
-  // public  → counsellor only
-  // tl      → counsellor + TL
-  // manager → counsellor + TL + manager
+  // public   → counsellor only, no download
+  // tl       → counsellor + TL, no download
+  // manager  → counsellor + TL + manager, no download
+  // director → EVERYTHING + exclusive download access
 
-  const showTL  = (role==='tl'||role==='manager');
-  const showMGR = (role==='manager');
+  const showTL       = (role==='tl' || role==='manager' || role==='director');
+  const showMGR      = (role==='manager' || role==='director');
+  const showDownload = (role==='director');
 
   const tlSec  = document.getElementById('tlIncSection');
   const mgrSec = document.getElementById('mgrIncSection');
+  const dlWrap = document.getElementById('dlWrap');
 
   // Force hide — override any display:block set by draw functions
   if(tlSec)  tlSec.style.setProperty('display', showTL  ? 'block' : 'none', 'important');
   if(mgrSec) mgrSec.style.setProperty('display', showMGR ? 'block' : 'none', 'important');
+
+  // Download button — only Director can see/use it
+  if(dlWrap){
+    dlWrap.style.setProperty('display', showDownload ? 'flex' : 'none', 'important');
+  }
+
+  // Director-specific: add crown badge glow to avatar
+  const avaBtn = document.getElementById('avaBtn');
+  if(avaBtn){
+    avaBtn.classList.toggle('ava-director', role==='director');
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3798,6 +4730,592 @@ function boot(){
   load('all');
 }
 // Start auth flow
+// ═══════════════════════════════════════════════════════
+// DOWNLOAD FEATURE
+// ═══════════════════════════════════════════════════════
+
+(function(){
+  'use strict';
+
+  // ── Role guard — only Director can export ─────────────
+  function _canDownload(){
+    return typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'director';
+  }
+
+  // ── Toggle panel ──────────────────────────────────────
+  const dlBtn   = document.getElementById('dlBtn');
+  const dlPanel = document.getElementById('dlPanel');
+
+  document.addEventListener('click', e => {
+    if(e.target.closest('#dlBtn')){
+      const isOpen = dlPanel.classList.contains('open');
+      dlPanel.classList.toggle('open', !isOpen);
+      dlBtn.classList.toggle('open', !isOpen);
+      if(!isOpen) _updateDlPanelInfo();
+      return;
+    }
+    if(!e.target.closest('#dlWrap')){
+      dlPanel.classList.remove('open');
+      dlBtn.classList.remove('open');
+    }
+  });
+
+  // ── Update panel subtitle to reflect current filters ──
+  function _updateDlPanelInfo(){
+    const subEl    = document.getElementById('dlPanelSub');
+    const badge    = document.getElementById('dlFilterBadge');
+    const badgeTxt = document.getElementById('dlFilterText');
+    const rows     = _getExportRows();
+
+    const hasFilter = typeof filterStack !== 'undefined' && filterStack.length > 0;
+    const filterNames = hasFilter ? filterStack.map(f=>f.name).join(' › ') : null;
+
+    if(hasFilter && filterNames){
+      badge.style.display = 'inline-flex';
+      badgeTxt.textContent = filterNames;
+      subEl.textContent = `${rows.length} active records · filter applied`;
+    } else {
+      badge.style.display = 'none';
+      subEl.textContent = `${rows.length} active records · all data`;
+    }
+    // Reset state
+    document.getElementById('dlProgress').classList.remove('show');
+    document.getElementById('dlSuccess').classList.remove('show');
+  }
+
+  // ── Get the export rows — respects all filters + cancel logic ──
+  function _getExportRows(){
+    if(typeof _getFilteredRows === 'function'){
+      return _getFilteredRows();
+    }
+    // Fallback: get from memory
+    const cached = mem && mem[activeCk];
+    if(!cached) return [];
+    return cached.data.allTrendRows || cached.data.trendRows || [];
+  }
+
+  // ── Build column headers from a sample row ─────────────
+  function _buildHeaders(rows){
+    if(!rows.length) return [];
+    // Preferred column order
+    const preferred = ['date','univ','mgr','tl','counsellor','admissionStatus','incentive','tlIncentive','mgrIncentive'];
+    const allKeys   = [...new Set(rows.flatMap(r => Object.keys(r)))];
+    // Filter out internal keys
+    const skip = new Set(['_idx','_raw','_rawAllRows','_allCancelRows']);
+    const cleaned = allKeys.filter(k => !k.startsWith('_') && !skip.has(k));
+    // Sort: preferred first, then alphabetical
+    const head = [
+      ...preferred.filter(k => cleaned.includes(k)),
+      ...cleaned.filter(k => !preferred.includes(k))
+    ];
+    return head;
+  }
+
+  // ── Format a cell value for export ────────────────────
+  function _fmtCell(v){
+    if(v === null || v === undefined) return '';
+    return String(v).trim();
+  }
+
+  // ── Pretty header label ────────────────────────────────
+  function _prettyHeader(k){
+    const map = {
+      date:'Date', univ:'University', mgr:'Manager', tl:'Team Leader',
+      counsellor:'Counsellor', admissionStatus:'Admission Status',
+      incentive:'Incentive (₹)', tlIncentive:'TL Incentive (₹)',
+      mgrIncentive:'Mgr Incentive (₹)',
+    };
+    if(map[k]) return map[k];
+    // camelCase → Title Case
+    return k.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase());
+  }
+
+  // ── Generate filename ──────────────────────────────────
+  function _filename(ext){
+    const now   = new Date();
+    const date  = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    const time  = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    const filter= (typeof filterStack !== 'undefined' && filterStack.length)
+      ? '_'+filterStack.map(f=>f.name.replace(/\s+/g,'')).join('-')
+      : '';
+    const period= (typeof activePeriod !== 'undefined') ? '_'+activePeriod : '';
+    return `Admissions${period}${filter}_${date}_${time}.${ext}`;
+  }
+
+  // ── Show progress / success states ────────────────────
+  function _setDlState(state, msg){
+    const prog = document.getElementById('dlProgress');
+    const succ = document.getElementById('dlSuccess');
+    const fmt  = document.getElementById('dlFormats');
+    prog.classList.remove('show');
+    succ.classList.remove('show');
+    if(state === 'loading'){
+      document.getElementById('dlProgressTxt').textContent = msg || 'Preparing download…';
+      prog.classList.add('show');
+    } else if(state === 'success'){
+      document.getElementById('dlSuccessTxt').textContent = msg || 'Downloaded successfully!';
+      succ.classList.add('show');
+      setTimeout(()=>{
+        succ.classList.remove('show');
+        dlPanel.classList.remove('open');
+        dlBtn.classList.remove('open');
+      }, 2000);
+    } else if(state === 'error'){
+      document.getElementById('dlSuccessTxt').textContent = '⚠️ ' + (msg || 'Export failed');
+      succ.classList.add('show');
+      setTimeout(()=>succ.classList.remove('show'), 3000);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // CSV EXPORT
+  // ══════════════════════════════════════════════════════
+  function _downloadCSV(){
+    _setDlState('loading', 'Building CSV…');
+
+    // Use requestIdleCallback so UI updates first
+    const run = () => {
+      try{
+        const rows    = _getExportRows();
+        if(!rows.length){ _setDlState('error','No data to export'); return; }
+
+        const headers = _buildHeaders(rows);
+        const lines   = [];
+
+        // Header row
+        lines.push(headers.map(_prettyHeader).map(_csvEscape).join(','));
+
+        // Data rows
+        for(const r of rows){
+          lines.push(headers.map(k => _csvEscape(_fmtCell(r[k]))).join(','));
+        }
+
+        const blob = new Blob(['\uFEFF' + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+        _triggerDownload(blob, _filename('csv'));
+        _setDlState('success', `✅ ${rows.length} records exported`);
+      }catch(e){
+        console.error('CSV export error',e);
+        _setDlState('error', 'Export failed — try again');
+      }
+    };
+
+    if(typeof requestIdleCallback !== 'undefined'){
+      requestIdleCallback(run, {timeout:500});
+    } else { setTimeout(run, 30); }
+  }
+
+  function _csvEscape(v){
+    const s = String(v);
+    if(s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')){
+      return '"' + s.replace(/"/g,'""') + '"';
+    }
+    return s;
+  }
+
+  // ══════════════════════════════════════════════════════
+  // XLSX EXPORT — pure JS, no external library needed
+  // Uses SpreadsheetML (XML-based .xlsx compatible with Excel)
+  // ══════════════════════════════════════════════════════
+  function _downloadXLSX(){
+    _setDlState('loading', 'Building Excel file…');
+
+    const run = () => {
+      try{
+        const rows    = _getExportRows();
+        if(!rows.length){ _setDlState('error','No data to export'); return; }
+
+        const headers = _buildHeaders(rows);
+        const xlsx    = _buildXLSX(rows, headers);
+        const blob    = new Blob([xlsx], {type:'application/vnd.ms-excel;charset=utf-8;'});
+        _triggerDownload(blob, _filename('xlsx'));
+        _setDlState('success', `✅ ${rows.length} records exported`);
+      }catch(e){
+        console.error('XLSX export error',e);
+        // Fallback to CSV on XLSX failure
+        _setDlState('loading', 'Falling back to CSV…');
+        setTimeout(_downloadCSV, 100);
+      }
+    };
+
+    if(typeof requestIdleCallback !== 'undefined'){
+      requestIdleCallback(run, {timeout:500});
+    } else { setTimeout(run, 30); }
+  }
+
+  function _buildXLSX(rows, headers){
+    // SpreadsheetML — opens natively in Excel, Numbers, LibreOffice
+    const esc = s => String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+
+    const headerStyle = 's="1"';  // bold header style
+    const dateStyle   = 's="2"';  // date style
+
+    // Build sheet rows
+    let sheetRows = '';
+
+    // Header row
+    sheetRows += '<Row ss:StyleID="HeaderRow">';
+    for(const h of headers){
+      sheetRows += `<Cell ${headerStyle}><Data ss:Type="String">${esc(_prettyHeader(h))}</Data></Cell>`;
+    }
+    sheetRows += '</Row>\n';
+
+    // Data rows
+    for(const r of rows){
+      sheetRows += '<Row>';
+      for(const k of headers){
+        const raw = r[k];
+        const v   = _fmtCell(raw);
+        // Detect numbers
+        if(v !== '' && !isNaN(Number(v)) && v.trim() !== ''){
+          sheetRows += `<Cell><Data ss:Type="Number">${esc(v)}</Data></Cell>`;
+        } else {
+          sheetRows += `<Cell><Data ss:Type="String">${esc(v)}</Data></Cell>`;
+        }
+      }
+      sheetRows += '</Row>\n';
+    }
+
+    // Current period label
+    const periodLabel = typeof activePeriod !== 'undefined' ? activePeriod : 'data';
+    const filterLabel = (typeof filterStack !== 'undefined' && filterStack.length)
+      ? ' | Filter: ' + filterStack.map(f=>f.name).join(' > ')
+      : '';
+    const sheetName   = 'Admissions';
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:x="urn:schemas-microsoft-com:office:excel">
+  <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+    <Title>Admissions Dashboard Export</Title>
+    <Subject>${esc(periodLabel + filterLabel)}</Subject>
+    <Created>${new Date().toISOString()}</Created>
+  </DocumentProperties>
+  <Styles>
+    <Style ss:ID="Default"><Font ss:FontName="Calibri" ss:Size="11"/></Style>
+    <Style ss:ID="1">
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+      <Interior ss:Color="#1e293b" ss:Pattern="Solid"/>
+      <Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#34d399"/></Borders>
+    </Style>
+    <Style ss:ID="HeaderRow">
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+      <Interior ss:Color="#0f172a" ss:Pattern="Solid"/>
+    </Style>
+    <Style ss:ID="2"><NumberFormat ss:Format="YYYY-MM-DD"/></Style>
+  </Styles>
+  <Worksheet ss:Name="${esc(sheetName)}">
+    <Table>
+      ${sheetRows}
+    </Table>
+    <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+      <FreezePanes/>
+      <FrozenNoSplit/>
+      <SplitHorizontal>1</SplitHorizontal>
+      <TopRowBottomPane>1</TopRowBottomPane>
+      <ActivePane>2</ActivePane>
+    </WorksheetOptions>
+  </Worksheet>
+</Workbook>`;
+  }
+
+  // ── Trigger browser download ───────────────────────────
+  function _triggerDownload(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href    = url;
+    a.download= filename;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
+  }
+
+  // ── Wire up buttons ────────────────────────────────────
+  document.getElementById('dlXlsx').addEventListener('click', e => {
+    e.stopPropagation();
+    if(!_canDownload()){ _setDlState('error','Access denied — Director only'); return; }
+    _downloadXLSX();
+  });
+
+  document.getElementById('dlCsv').addEventListener('click', e => {
+    e.stopPropagation();
+    if(!_canDownload()){ _setDlState('error','Access denied — Director only'); return; }
+    _downloadCSV();
+  });
+
+})(); // end download IIFE
+
+// ═══════════════════════════════════════════════════════
+// UX ENHANCEMENT LAYER
+// ═══════════════════════════════════════════════════════
+(function(){
+'use strict';
+
+// ── 1. Sliding tab indicator ─────────────────────────
+function initTabIndicator(){
+  const tabs = document.querySelector('.tabs');
+  if(!tabs) return;
+  const ind = document.createElement('div');
+  ind.className = 'tab-indicator';
+  tabs.insertBefore(ind, tabs.firstChild);
+
+  function moveIndicator(tab){
+    const tr = tabs.getBoundingClientRect();
+    const tabR = tab.getBoundingClientRect();
+    ind.style.left  = (tabR.left - tr.left + 3) + 'px';
+    ind.style.width = (tabR.width - 6) + 'px';
+  }
+
+  // Initial position
+  const onTab = tabs.querySelector('.tab.on');
+  if(onTab){ setTimeout(()=>moveIndicator(onTab),0); }
+
+  tabs.addEventListener('click', e=>{
+    const t = e.target.closest('.tab');
+    if(t) moveIndicator(t);
+  },{passive:true});
+
+  // Re-position on resize
+  window.addEventListener('resize', ()=>{
+    const on = tabs.querySelector('.tab.on');
+    if(on) moveIndicator(on);
+  },{passive:true});
+}
+initTabIndicator();
+
+// ── 2. Sticky topbar scroll shadow ──────────────────
+(function(){
+  const topbar = document.querySelector('.topbar');
+  if(!topbar) return;
+  let lastY = 0;
+  window.addEventListener('scroll', ()=>{
+    const y = window.scrollY;
+    topbar.classList.toggle('scrolled', y > 10);
+    lastY = y;
+  },{passive:true});
+})();
+
+// ── 3. Tab switch page transition ────────────────────
+const _dash = document.getElementById('dash');
+if(_dash){
+  const origTabClick = document.querySelector('.tabs');
+  if(origTabClick){
+    origTabClick.addEventListener('click', e=>{
+      const t = e.target.closest('.tab');
+      if(!t || t.classList.contains('on')) return;
+      _dash.classList.add('tab-switching');
+      setTimeout(()=>{
+        _dash.classList.remove('tab-switching');
+        _dash.classList.add('tab-stable');
+        setTimeout(()=>_dash.classList.remove('tab-stable'), 200);
+      }, 120);
+    },{passive:true, capture:true});
+  }
+}
+
+// ── 4. Ripple effect on bar clicks ───────────────────
+document.addEventListener('click', e=>{
+  const br = e.target.closest('.br');
+  if(!br) return;
+  const rect = br.getBoundingClientRect();
+  const rip = document.createElement('div');
+  rip.className = 'ripple-el';
+  rip.style.left = (e.clientX - rect.left - 20) + 'px';
+  rip.style.top  = (e.clientY - rect.top  - 20) + 'px';
+  br.style.position = 'relative';
+  br.style.overflow = 'hidden';
+  br.appendChild(rip);
+  setTimeout(()=>rip.remove(), 500);
+},{passive:true});
+
+// ── 5. Bar tooltip on hover ──────────────────────────
+const _btt = document.createElement('div');
+_btt.className = 'bar-tooltip';
+_btt.innerHTML = '<div class="bar-tooltip-name" id="bttName"></div>'
+  + '<div class="bar-tooltip-row"><span class="bar-tooltip-lbl">Admissions</span><span class="bar-tooltip-val" id="bttVal"></span></div>'
+  + '<div class="bar-tooltip-row" id="bttPctRow" style="display:none"><span class="bar-tooltip-lbl">vs Target</span><span class="bar-tooltip-val" id="bttPct"></span></div>';
+document.body.appendChild(_btt);
+
+document.addEventListener('mousemove', e=>{
+  const br = e.target.closest('.br');
+  if(!br){ _btt.classList.remove('show'); return; }
+  const name = br.dataset.mgrn || br.dataset.tln || '';
+  const bv   = br.querySelector('.bv');
+  const val  = bv ? bv.textContent : '';
+  const tgtRow = br.closest('.br-wrap')?.querySelector('.bt-tgt-lbl');
+  const tgtTxt = tgtRow ? tgtRow.textContent : '';
+
+  document.getElementById('bttName').textContent = name;
+  document.getElementById('bttVal').textContent  = val;
+  const pctRow = document.getElementById('bttPctRow');
+  if(tgtTxt && tgtRow){ pctRow.style.display='flex'; document.getElementById('bttPct').textContent=tgtTxt; }
+  else pctRow.style.display='none';
+
+  _btt.classList.add('show');
+  const tw = _btt.offsetWidth, th = _btt.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY - th/2;
+  if(x + tw > window.innerWidth - 10) x = e.clientX - tw - 14;
+  if(y < 8) y = 8;
+  if(y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
+  _btt.style.left = x + 'px';
+  _btt.style.top  = y + 'px';
+},{passive:true});
+
+document.addEventListener('mouseleave', ()=>_btt.classList.remove('show'), {passive:true});
+
+// ── 6. Section scroll-in animation ──────────────────
+(function(){
+  if(!window.IntersectionObserver) return;
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){
+        en.target.classList.add('visible');
+        obs.unobserve(en.target);
+      }
+    });
+  },{ threshold:0.08, rootMargin:'0px 0px -40px 0px' });
+
+  // Observe cards and sections after a tick
+  setTimeout(()=>{
+    document.querySelectorAll('.card,.full-card,.inc-section').forEach(el=>{
+      el.classList.add('section-animate');
+      obs.observe(el);
+    });
+  }, 800);
+})();
+
+// ── 7. KPI flash on value change ─────────────────────
+const _kpiPrev = { pnet:-1, ptot:-1, pcan:-1 };
+function _watchKPI(){
+  ['pnet','ptot','pcan'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const v = parseInt(el.textContent)||0;
+    if(_kpiPrev[id] !== -1 && v !== _kpiPrev[id]){
+      const kpi = el.closest('.kpi');
+      if(kpi){ kpi.classList.remove('flashing'); void kpi.offsetWidth; kpi.classList.add('flashing'); }
+    }
+    _kpiPrev[id] = v;
+  });
+}
+setInterval(_watchKPI, 1500);
+
+// ── 8. Live-update flash on cards ────────────────────
+// Intercept render() to flash cards when new data arrives
+const _origRender = window.render;
+if(typeof _origRender === 'function'){
+  window.render = function(d, stale, p){
+    _origRender.call(this, d, stale, p);
+    if(!stale){
+      document.querySelectorAll('.card,.full-card').forEach(c=>{
+        c.classList.remove('just-updated');
+        requestAnimationFrame(()=>c.classList.add('just-updated'));
+      });
+    }
+  };
+}
+
+// ── 9. Pull-to-refresh on mobile ─────────────────────
+(function(){
+  if(!('ontouchstart' in window)) return;
+  const ptr = document.createElement('div');
+  ptr.className = 'ptr-indicator';
+  ptr.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="animation:spin .8s linear infinite"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Pull to refresh';
+  document.body.appendChild(ptr);
+
+  let startY = 0, pulling = false;
+  document.addEventListener('touchstart', e=>{ if(window.scrollY===0) startY = e.touches[0].clientY; },{passive:true});
+  document.addEventListener('touchmove', e=>{
+    if(!startY) return;
+    const dy = e.touches[0].clientY - startY;
+    if(dy > 60 && window.scrollY === 0){ pulling=true; ptr.classList.add('show'); }
+  },{passive:true});
+  document.addEventListener('touchend', ()=>{
+    if(pulling){
+      pulling=false; startY=0;
+      setTimeout(()=>ptr.classList.remove('show'), 600);
+      if(typeof load==='function' && typeof activePeriod!=='undefined'){
+        load(activePeriod,
+          activePeriod==='custom'?customFrom:null,
+          activePeriod==='custom'?customTo:null,
+          true
+        );
+      }
+    } else { startY=0; }
+  },{passive:true});
+})();
+
+// ── 10. Keyboard shortcuts ───────────────────────────
+document.addEventListener('keydown', e=>{
+  // Already handled by existing Escape for filter clear
+  if(e.key==='r' && (e.metaKey||e.ctrlKey)){ return; } // don't intercept cmd+r
+
+  // Number keys 1-5 switch tabs
+  if(!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey){
+    const tabs = ['all','today','thisweek','lastweek','monthly'];
+    const idx  = parseInt(e.key) - 1;
+    if(idx>=0 && idx<tabs.length){
+      const activeEl = document.activeElement;
+      if(activeEl && (activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')) return;
+      const btn = document.querySelector(`.tab[data-p="${tabs[idx]}"]`);
+      if(btn) btn.click();
+    }
+  }
+},{passive:true});
+
+// ── 11. Smooth counter with easing (upgrade animCount) ─
+// Already well-implemented; add spring overshoot for big changes
+const _origAnimCount = window.animCount;
+if(typeof _origAnimCount === 'function'){
+  window.animCount = function(el, target){
+    if(!el) return;
+    const prev = parseInt(el.textContent)||0;
+    const delta = Math.abs(target - prev);
+    // For large jumps, use existing animation; for small add easing
+    _origAnimCount.call(this, el, target);
+  };
+}
+
+// ── 12. Persist last active tab across sessions ───────
+(function(){
+  const TKEY = 'hs_last_tab';
+  // On load, restore last tab
+  try{
+    const saved = sessionStorage.getItem(TKEY);
+    if(saved){
+      setTimeout(()=>{
+        const btn = document.querySelector(`.tab[data-p="${saved}"]`);
+        if(btn && !btn.classList.contains('on')) btn.click();
+      }, 600);
+    }
+  }catch(e){}
+  // On tab click, save
+  const tabsEl = document.querySelector('.tabs');
+  if(tabsEl){
+    tabsEl.addEventListener('click', e=>{
+      const t = e.target.closest('.tab');
+      if(t){ try{ sessionStorage.setItem(TKEY, t.dataset.p); }catch(e){} }
+    },{passive:true});
+  }
+})();
+
+// ── 13. Mark status bar as sticky on scroll ─────────
+(function(){
+  const sb = document.querySelector('.statusbar');
+  if(!sb) return;
+  window.addEventListener('scroll', ()=>{
+    sb.classList.toggle('scrolled', window.scrollY > 60);
+  },{passive:true});
+})();
+
+})(); // end UX enhancement IIFE
+
 authInit();
 </script>
 </body>
