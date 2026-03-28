@@ -272,6 +272,7 @@ header{
 @keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
 /* ── LOADING ── */
 #loading{
@@ -331,7 +332,15 @@ main{
 /* ── PROCESS BAR ── */
 .proc-bar{
   display:flex;align-items:center;gap:6px;
-  margin-bottom:0.6rem;flex-wrap:wrap;
+  flex-wrap:wrap;
+  position:sticky;top:48px;z-index:100;
+  background:rgba(3,5,13,0.96);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  padding:0.45rem 1.4rem;
+  margin:0 -1.4rem 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  box-shadow:0 4px 24px rgba(0,0,0,0.5);
 }
 .flbl{
   font-size:0.6rem;color:var(--dim);font-weight:800;margin-right:3px;
@@ -364,10 +373,19 @@ main{
   padding:2px 9px;font-size:0.74rem;font-weight:900;font-family:'JetBrains Mono',monospace;
 }
 
+/* ── KPI STRIP WRAPPER ── */
+.overview-sticky{
+  position:relative;
+  z-index:1;
+  background:transparent;
+  margin:0.6rem 0 0.6rem;
+  padding:0;
+}
+
 /* ── KPI STRIP ── */
 .kpi-strip{
   display:grid;grid-template-columns:repeat(6,1fr);
-  gap:0.55rem;margin-bottom:0.65rem;
+  gap:0.55rem;margin-bottom:0;
 }
 @media(max-width:1200px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:700px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
@@ -672,10 +690,24 @@ main{
 
   <div class="proc-bar" id="procBar"><span class="flbl">Filter :</span></div>
 
-  <div class="sec-hdr">Overview</div>
-  <div class="kpi-strip" id="kpis"></div>
+  <!-- Admit Ticker -->
+  <div style="margin:0.5rem -1.4rem 0;background:rgba(3,5,13,0.93);border-bottom:1px solid rgba(24,233,110,0.1);">
+    <div id="admitTicker" style="display:flex;align-items:center;gap:0;overflow:hidden;height:44px;position:relative;">
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:7px;padding:0 14px;background:rgba(24,233,110,0.1);border-right:1px solid rgba(24,233,110,0.2);height:100%;">
+        <span style="font-size:0.7rem;font-weight:900;letter-spacing:0.14em;color:var(--green);font-family:'JetBrains Mono',monospace;white-space:nowrap;">🏆 TOP ADMITS</span>
+      </div>
+      <div style="flex:1;overflow:hidden;position:relative;">
+        <div id="admitTickerInner" style="display:inline-flex;align-items:center;gap:0;white-space:nowrap;will-change:transform;"></div>
+      </div>
+    </div>
+  </div>
 
-  <div class="sec-hdr">Team Performance</div>
+  <div class="overview-sticky">
+    <div class="sec-hdr">Overview</div>
+    <div class="kpi-strip" id="kpis"></div>
+  </div>
+
+  <div class="sec-hdr" style="margin-top:0.5rem;">Team Performance</div>
 
   <!-- Counsellor + TL side by side -->
   <div class="team-grid">
@@ -711,7 +743,7 @@ main{
     </div>
   </div>
 
-  <!-- Team Leader: left half, right side empty -->
+  <!-- Team Leader: left half (original bars), right side donut -->
   <div class="mgr-row">
     <div class="card">
       <div class="card-hd">
@@ -736,22 +768,40 @@ main{
         </div>
         <span class="chip" id="procDonutChip">—</span>
       </div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:2rem;padding:0.2rem 0.5rem 0.5rem;flex:1;">
-        <!-- Donut -->
-        <div style="position:relative;width:190px;height:190px;flex-shrink:0;">
+      <!-- Donut centered, fills card like TL bar panel -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0.4rem 0.5rem 0.8rem;">
+        <div style="position:relative;width:min(340px,100%);aspect-ratio:1/1;max-height:360px;">
           <canvas id="procDonut"></canvas>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
-            <div style="font-size:1.65rem;font-weight:1000;letter-spacing:-0.05em;line-height:1;
+            <div style="font-size:2rem;font-weight:1000;letter-spacing:-0.05em;line-height:1;
               background:linear-gradient(135deg,#fff 55%,rgba(255,255,255,0.55));
               -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;"
               id="donutTotal">—</div>
-            <div style="font-size:0.52rem;font-weight:800;color:var(--dim);letter-spacing:0.16em;text-transform:uppercase;margin-top:4px;font-family:'JetBrains Mono',monospace;">Total Apps</div>
+            <div style="font-size:0.52rem;font-weight:800;color:var(--dim);letter-spacing:0.16em;text-transform:uppercase;margin-top:5px;font-family:'JetBrains Mono',monospace;">Total Apps</div>
           </div>
         </div>
-        <!-- Legend -->
-        <div id="procDonutLegend" style="display:flex;flex-direction:column;gap:10px;min-width:140px;"></div>
+        <div id="procDonutLegend" style="display:none;"></div>
       </div>
     </div>
+  </div>
+
+  <!-- Full-width TL Chart -->
+  <div class="card" style="margin-bottom:0.6rem;">
+    <div class="card-hd">
+      <div>
+        <div class="card-title">Team Leader-wise Performance — Chart</div>
+        <div class="card-sub">Applications vs Admissions vs Conv %</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="legend-row" style="margin:0;">
+          <span class="leg-item"><span class="leg-swatch" style="background:var(--gold);border-radius:50%;box-shadow:0 0 6px rgba(255,204,0,0.5)"></span>Conv %</span>
+          <span class="leg-item"><span class="leg-swatch" style="background:rgba(181,123,255,0.85);box-shadow:0 0 6px rgba(181,123,255,0.4)"></span>Applications</span>
+          <span class="leg-item"><span class="leg-swatch" style="background:var(--green);box-shadow:0 0 6px rgba(24,233,110,0.4)"></span>Admissions</span>
+        </div>
+        <span class="chip p" id="tlChartChip">—</span>
+      </div>
+    </div>
+    <div class="chart-box" style="height:420px;width:100%;"><canvas id="tlChart"></canvas></div>
   </div>
 
 </main>
@@ -928,29 +978,28 @@ function demo(){
 }
 
 /* ── HELPERS ── */
-// Pre-compute admit flag once — avoid repeated string ops per render
-let ADMIT_SET = new WeakSet();
+// Stamp each row with _admit flag directly — survives JSON serialize/parse cycles
 function buildAdmitSet(rows){
-  ADMIT_SET = new WeakSet();
   const admitVal = String(C.admitVal||'Done').trim().toLowerCase();
   rows.forEach(r=>{
     const v = String(r[C.status]||'').trim().toLowerCase();
-    if(v===admitVal || v==='done' || v==='admitted' || v.includes('admit'))
-      ADMIT_SET.add(r);
+    r._admit = (v===admitVal || v==='done' || v==='admitted' || v.includes('admit')) ? 1 : 0;
   });
 }
-const isAdmit = r => ADMIT_SET.has(r);
+const isAdmit = r => r && r._admit === 1;
 
 // Aggregation with correct stable cache key
 // apps = non-admitted only; admits = admitted only
 const _AGG_CACHE = new Map();
 function agg(data, col){
-  const key = col + '|' + (data._id||0);
+  // Always use _id stamped on the array; if missing, stamp it now
+  if(data._id===undefined) data._id=++_dataId;
+  const key = col + '|' + data._id;
   if(_AGG_CACHE.has(key)) return _AGG_CACHE.get(key);
   const apps={}, admits={};
   for(let i=0;i<data.length;i++){
     const r=data[i], k=String(r[col]||'Unknown').trim();
-    if(ADMIT_SET.has(r)){
+    if(r._admit===1){
       admits[k]=(admits[k]||0)+1;
     } else {
       apps[k]=(apps[k]||0)+1;
@@ -963,60 +1012,78 @@ function agg(data, col){
 let _dataId=0;
 function clearAggCache(){
   _AGG_CACHE.clear();
-  // stamp arrays so cache keys are unique per render
   if(RAW) RAW._id=++_dataId;
-  if(FILTERED) FILTERED._id=++_dataId;
+  // FILTERED gets stamped separately after it is reassigned in _doRender
 }
 
 function uniq(data,col){return[...new Set(data.map(r=>r[col]).filter(Boolean))];}
 function fmt(n){return Number(n).toLocaleString('en-IN');}
 function dc(id){if(CHS[id]){CHS[id].destroy();delete CHS[id];}}
 
-/* ── DATE PARSE ── */
+/* ── DATE PARSE — strict, no garbage fallback ── */
 function parseDate(str){
-  if(!str)return null;
-  const s=String(str).trim();
+  if(!str) return null;
+  const s = String(str).trim();
+  if(!s || s==='-' || s.toLowerCase()==='na' || s.toLowerCase()==='null') return null;
   const months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  // "01 Mar 2025" or "1 March 2025"
   const m1=s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
-  if(m1){const mo=months[m1[2].toLowerCase().slice(0,3)];if(mo!==undefined)return new Date(+m1[3],mo,+m1[1]);}
-  const m2=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
-  if(m2)return new Date(+m2[3],+m2[2]-1,+m2[1]);
-  const m3=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if(m3)return new Date(+m3[1],+m3[2]-1,+m3[3]);
-  const d=new Date(s);return isNaN(d)?null:d;
+  if(m1){const mo=months[m1[2].toLowerCase().slice(0,3)];if(mo!==undefined){const d=new Date(+m1[3],mo,+m1[1]);return isNaN(d)?null:d;}}
+  // "01/03/2025" or "01-03-2025" DD/MM/YYYY
+  const m2=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m2){const d=new Date(+m2[3],+m2[2]-1,+m2[1]);return isNaN(d)?null:d;}
+  // "2025-03-01" ISO
+  const m3=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m3){const d=new Date(+m3[1],+m3[2]-1,+m3[3]);return isNaN(d)?null:d;}
+  // "01/03/25" short year
+  const m4=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+  if(m4){const yr=+m4[3]+(+m4[3]>=50?1900:2000);const d=new Date(yr,+m4[2]-1,+m4[1]);return isNaN(d)?null:d;}
+  return null; // no fallback — prevents garbage dates polluting filters
 }
 function startOf(d,unit){
   const x=new Date(d);
   if(unit==='day'){x.setHours(0,0,0,0);}
-  if(unit==='week'){const day=x.getDay();x.setDate(x.getDate()-day);x.setHours(0,0,0,0);}
+  if(unit==='week'){
+    // Week starts Monday
+    const day=x.getDay();const diff=day===0?-6:1-day;
+    x.setDate(x.getDate()+diff);x.setHours(0,0,0,0);
+  }
   if(unit==='month'){x.setDate(1);x.setHours(0,0,0,0);}
   return x;
 }
 function filterByDate(rows){
-  if(DATE_MODE==='all')return rows;
-  const now=new Date();now.setHours(23,59,59,999);
-  let from,to=now;
-  if(DATE_MODE==='today'){from=new Date();from.setHours(0,0,0,0);}
-  else if(DATE_MODE==='week'){from=startOf(new Date(),'week');}
+  if(DATE_MODE==='all') return rows;
+  const now=new Date(); now.setHours(23,59,59,999);
+  let from, to=now;
+  if(DATE_MODE==='today'){
+    from=new Date(); from.setHours(0,0,0,0);
+    to=new Date(); to.setHours(23,59,59,999);
+  }
+  else if(DATE_MODE==='week'){ from=startOf(new Date(),'week'); }
   else if(DATE_MODE==='lastweek'){
     const s=startOf(new Date(),'week');
-    from=new Date(s);from.setDate(from.getDate()-7);
-    to=new Date(s);to.setDate(to.getDate()-1);to.setHours(23,59,59,999);
-  }else if(DATE_MODE==='month'){from=startOf(new Date(),'month');}
-  else if(DATE_MODE==='custom'){from=DATE_FROM;to=DATE_TO||now;}
-  if(!from)return rows;
-  return rows.filter(r=>{const d=parseDate(r[C.date]);if(!d)return true;return d>=from&&d<=to;});
+    from=new Date(s); from.setDate(from.getDate()-7);
+    to=new Date(s); to.setDate(to.getDate()-1); to.setHours(23,59,59,999);
+  }
+  else if(DATE_MODE==='month'){ from=startOf(new Date(),'month'); }
+  else if(DATE_MODE==='custom'){ from=DATE_FROM; to=DATE_TO||now; }
+  if(!from) return rows;
+  return rows.filter(r=>{
+    const d=parseDate(r[C.date]);
+    if(!d) return false; // STRICT: exclude undated rows in any date-filtered view
+    return d>=from && d<=to;
+  });
 }
 
 /* ── DATE UI ── */
 function setDate(mode){
-  if(DATE_MODE === mode && mode !== 'custom') return; // no-op
-  DATE_MODE = mode;
+  DATE_MODE = mode; // no no-op — always re-renders, allows re-clicking Today to force refresh
   document.querySelectorAll('.dpill').forEach(el=>{
     const id = el.id || '';
     el.classList.toggle('active', id === 'dp-'+mode);
   });
   if(mode !== 'custom') CAL.close();
+  _cnslHash=''; _tlHash=''; _kpiHash='';
   render(true);
 }
 
@@ -1374,18 +1441,22 @@ function _doRender(){
     const dateFiltered = filterByDate(RAW);
     FILTERED = ACTIVE==='All' ? dateFiltered : dateFiltered.filter(r=>String(r[C.process]||'').trim()===ACTIVE);
     clearAggCache();
-    FILTERED._id = ++_dataId;
+    FILTERED._id = ++_dataId; // stamp AFTER reassignment so agg() cache key is always fresh
+    // reset all hash guards — forces full re-render of every panel on every filter change
+    _kpiHash=''; _cnslHash=''; _tlHash='';
 
     document.getElementById('app').style.display='block';
     document.getElementById('loading').classList.add('gone');
     buildProcBar(dateFiltered);
     buildKPIs();
+    buildAdmitTicker();
     buildCnslBars();
     buildTLBars();
 
     const schedChart = window.requestIdleCallback || (fn => setTimeout(fn, 16));
     schedChart(() => {
       try{ buildMgrChart(); } catch(e){ console.warn('mgrChart err',e); }
+      try{ buildTLChart(); } catch(e){ console.warn('tlChart err',e); }
       try{ buildProcDonut(); } catch(e){ console.warn('donut err',e); }
     });
   } catch(e){
@@ -1397,11 +1468,11 @@ function _doRender(){
 function buildProcBar(dateFiltered){
   const pool  = dateFiltered || RAW;
   const procs = uniq(pool, C.process);
-  const poolApps = pool.filter(r => !ADMIT_SET.has(r)).length;
+  const poolApps = pool.filter(r => r._admit!==1).length;
   let h = `<span class="flbl">Filter :</span>
     <div class="proc-pill ${ACTIVE==='All'?'aa':''}" onclick="setP('All')">All <span class="pcnt">${fmt(poolApps)}</span></div>`;
   procs.forEach(p=>{
-    const cnt   = pool.filter(r=>String(r[C.process]||'').trim()===p && !ADMIT_SET.has(r)).length;
+    const cnt   = pool.filter(r=>String(r[C.process]||'').trim()===p && r._admit!==1).length;
     const color = pc(p);
     const isAct = ACTIVE === p;
     h += `<div class="proc-pill${isAct?' proc-pill-active':''}" 
@@ -1423,7 +1494,7 @@ let _kpiHash = '';
 function buildKPIs(){
   const d=FILTERED;
   let admits=0;
-  for(let i=0;i<d.length;i++) if(ADMIT_SET.has(d[i])) admits++;
+  for(let i=0;i<d.length;i++) if(d[i]._admit===1) admits++;
   const total = d.length - admits; // applications = non-admitted rows only
   const rate=total?(admits/total*100).toFixed(1):0;
   const hash=`${total}|${admits}|${rate}`;
@@ -1448,16 +1519,69 @@ function kpiH(lbl,val,kc,icon,note,nc='info'){
   </div>`;
 }
 
-/* ── COUNSELLOR BARS ── */
+/* ── ADMIT TICKER ── */
+let _tickerAnim=null;
+function buildAdmitTicker(){
+  const inner=document.getElementById('admitTickerInner');
+  if(!inner) return;
+
+  // Build counsellor admit map from FILTERED
+  const cnMap={};
+  FILTERED.forEach(r=>{
+    if(!isAdmit(r)) return;
+    const cn=String(r[C.counsellor]||'').trim()||'—';
+    cnMap[cn]=(cnMap[cn]||0)+1;
+  });
+  // Top 5 only
+  const sorted=Object.entries(cnMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  if(!sorted.length){
+    inner.style.animation='none';
+    inner.innerHTML='<span style="padding:0 20px;font-size:0.7rem;color:var(--dim);font-family:\'JetBrains Mono\',monospace;letter-spacing:0.06em;">No admissions in this filter</span>';
+    return;
+  }
+
+  const medals=['🥇','🥈','🥉'];
+  const colors=['#fbbf24','#94a3b8','#f97316','var(--green2)','var(--ally)'];
+
+  const itemHTML=sorted.map(([name,cnt],i)=>{
+    const medal=i<3?medals[i]:'';
+    const col=colors[i]||'var(--green2)';
+    const prefix=medal
+      ? `<span style="font-size:1.1rem;line-height:1;">${medal}</span>`
+      : `<span style="font-size:0.75rem;font-weight:900;color:rgba(255,255,255,0.35);font-family:'JetBrains Mono',monospace;">#${i+1}</span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:14px;padding:0 36px;border-right:1px solid rgba(255,255,255,0.08);height:44px;flex-shrink:0;">`
+      + prefix
+      + `<span style="font-size:1.05rem;font-weight:900;color:#fff;letter-spacing:-0.02em;">${name}</span>`
+      + `<span style="font-size:0.88rem;font-weight:900;color:${col};font-family:'JetBrains Mono',monospace;background:${col}22;border:1px solid ${col}55;padding:3px 14px;border-radius:20px;letter-spacing:0.02em;">${cnt} admits</span>`
+      + `</span>`;
+  }).join('');
+
+  // Duplicate for seamless loop
+  inner.innerHTML = itemHTML + itemHTML;
+
+  // Very slow scroll — 30px/sec
+  requestAnimationFrame(()=>{
+    const totalW = inner.scrollWidth / 2;
+    const dur = totalW / 30; // very slow: 30px per second
+    inner.style.animation='none';
+    inner.offsetHeight;
+    inner.style.animation=`tickerScroll ${dur}s linear infinite`;
+  });
+}
 let _cnslHash = '';
 function buildCnslBars(){
   const{apps,admits}=agg(FILTERED,C.counsellor);
   const labels=Object.keys(apps).sort((a,b)=>(admits[b]||0)/apps[b]-(admits[a]||0)/apps[a]);
   const maxA=Math.max(...Object.values(apps),1);
-  const hash = labels.map(n=>n+apps[n]+(admits[n]||0)).join('|');
+  const hash = FILTERED._id+'|'+labels.map(n=>n+apps[n]+(admits[n]||0)).join('|');
   document.getElementById('cnslChip').textContent=labels.length+' counsellors';
-  if(hash === _cnslHash) return; // skip DOM write if nothing changed
+  if(hash === _cnslHash) return;
   _cnslHash = hash;
+  if(!labels.length){
+    document.getElementById('cnslBars').innerHTML='<div style="text-align:center;padding:2rem 0;color:var(--dim);font-size:0.8rem;font-family:JetBrains Mono,monospace;letter-spacing:0.08em;">NO DATA FOR THIS FILTER</div>';
+    return;
+  }
   let h='';
   labels.forEach((name,i)=>{
     const av=apps[name],dv=admits[name]||0;
@@ -1486,16 +1610,20 @@ function buildCnslBars(){
   document.getElementById('cnslBars').innerHTML=h;
 }
 
-/* ── TL BARS ── */
+/* ── TL BARS (original) ── */
 let _tlHash = '';
 function buildTLBars(){
   const{apps,admits}=agg(FILTERED,C.tl);
   const labels=Object.keys(apps).sort((a,b)=>(admits[b]||0)/apps[b]-(admits[a]||0)/apps[a]);
   const maxA=Math.max(...Object.values(apps),1);
-  const hash = labels.map(n=>n+apps[n]+(admits[n]||0)).join('|');
+  const hash = FILTERED._id+'|'+labels.map(n=>n+apps[n]+(admits[n]||0)).join('|');
   document.getElementById('tlChip').textContent=labels.length+' team leaders';
   if(hash === _tlHash) return;
   _tlHash = hash;
+  if(!labels.length){
+    document.getElementById('tlBars').innerHTML='<div style="text-align:center;padding:2rem 0;color:var(--dim);font-size:0.8rem;font-family:JetBrains Mono,monospace;letter-spacing:0.08em;">NO DATA FOR THIS FILTER</div>';
+    return;
+  }
   let h='';
   labels.forEach((name,i)=>{
     const av=apps[name],dv=admits[name]||0;
@@ -1525,6 +1653,135 @@ function buildTLBars(){
   document.getElementById('tlBars').innerHTML=h;
 }
 
+/* ── TL CHART (new full-width bar+line) ── */
+function buildTLChart(){
+  dc('tlChart');
+  const{apps,admits}=agg(FILTERED,C.tl);
+  const labels=Object.keys(apps).sort((a,b)=>{
+    const pa=(admits[a]||0)/apps[a],pb=(admits[b]||0)/apps[b];return pb-pa;
+  });
+  const ratios=labels.map(l=>apps[l]?+((admits[l]||0)/apps[l]*100).toFixed(1):0);
+  document.getElementById('tlChartChip').textContent=labels.length+' team leaders';
+
+  /* smart y-max: per-column max so every bar uses full height */
+  const allVals=[...labels.map(l=>apps[l]),...labels.map(l=>admits[l]||0)].filter(Boolean);
+  const yMax=allVals.length?Math.ceil(Math.max(...allVals)*1.18):100;
+
+  const ctx=document.getElementById('tlChart').getContext('2d');
+  CHS.tlChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Applications',
+       data:labels.map(l=>apps[l]),
+       backgroundColor:'rgba(181,123,255,0.7)',borderColor:'#b57bff',borderWidth:0,
+       borderRadius:6,borderSkipped:false,
+       categoryPercentage:0.75,barPercentage:0.55,order:2},
+      {label:'Admissions',
+       data:labels.map(l=>admits[l]||0),
+       backgroundColor:'rgba(34,197,94,0.7)',borderColor:'#22c55e',borderWidth:0,
+       borderRadius:6,borderSkipped:false,
+       categoryPercentage:0.75,barPercentage:0.55,order:2},
+      {label:'Conv %',
+       data:ratios,type:'line',
+       borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,0.07)',
+       borderWidth:3,pointRadius:7,pointHoverRadius:10,
+       pointBackgroundColor:'#fbbf24',pointBorderColor:'#060810',pointBorderWidth:2,
+       tension:0.35,yAxisID:'y2',order:1,fill:true}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:64,bottom:0,left:4,right:4}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          ...TIP,
+          callbacks:{
+            label:ctx=>{if(ctx.dataset.label==='Conv %')return ` Conv %: ${ctx.raw}%`;return ` ${ctx.dataset.label}: ${ctx.raw}`;},
+            afterBody:items=>{
+              const i=items[0].dataIndex;const a=apps[labels[i]],d=admits[labels[i]]||0;
+              return [` Ratio: ${d} / ${a} = ${ratios[i]}%`];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},
+           ticks:{color:'#c8d0e0',font:{family:'Nunito',size:14,weight:'900'},padding:10},
+           border:{display:false}},
+        y:{min:0,max:yMax,grid:{color:'rgba(255,255,255,0.045)'},
+           ticks:{color:'#38445a',font:{family:'JetBrains Mono',size:11},padding:6},
+           border:{display:false}},
+        y2:{position:'right',min:0,max:100,grid:{display:false},
+            ticks:{color:'#fbbf24',font:{family:'JetBrains Mono',size:11,weight:'700'},callback:v=>v+'%',padding:6},
+            border:{display:false}}
+      },
+      animation:{duration:400,easing:'easeOutQuart'},
+      onClick(e,elements){
+        if(!elements.length) return;
+        const el=elements[0];
+        const dsLabel=CHS.tlChart.data.datasets[el.datasetIndex].label;
+        if(dsLabel==='Conv %') return;
+        openTLModal(labels[el.index],dsLabel);
+      },
+      onHover(e,elements){
+        e.native.target.style.cursor=elements.length&&CHS.tlChart.data.datasets[elements[0].datasetIndex].label!=='Conv %'?'pointer':'default';
+      }
+    },
+    plugins:[{
+      id:'tlLbl',
+      afterDatasetsDraw(chart){
+        const{ctx}=chart;
+        ctx.save();
+        const BAR_H=20,GAP=4;
+        const colData={};
+        chart.data.datasets.forEach((ds,di)=>{
+          if(ds.type==='line') return;
+          chart.getDatasetMeta(di).data.forEach((bar,i)=>{
+            const v=ds.data[i]; if(!v) return;
+            const{x,y}=bar.getProps(['x','y'],true);
+            if(!colData[i]) colData[i]={};
+            if(di===0){colData[i].appX=x;colData[i].appY=y;colData[i].appV=v;}
+            else      {colData[i].admX=x;colData[i].admY=y;colData[i].admV=v;}
+          });
+        });
+        Object.values(colData).forEach(col=>{
+          const draw=(x,y,v,color,bg)=>{
+            if(!v) return;
+            const lbl=String(v);
+            ctx.font='bold 13px "JetBrains Mono",monospace';
+            const tw=ctx.measureText(lbl).width+14;
+            const by=y-BAR_H-GAP;
+            ctx.fillStyle='rgba(4,6,18,0.82)';
+            ctx.beginPath();ctx.roundRect(x-tw/2,by,tw,BAR_H,5);ctx.fill();
+            ctx.strokeStyle=bg;ctx.lineWidth=1.5;
+            ctx.beginPath();ctx.roundRect(x-tw/2,by,tw,BAR_H,5);ctx.stroke();
+            ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillText(lbl,x,by+BAR_H/2);
+          };
+          draw(col.appX,col.appY,col.appV,'#d8b4fe','rgba(181,123,255,0.6)');
+          draw(col.admX,col.admY,col.admV,'#86efac','rgba(34,197,94,0.5)');
+        });
+        const CONV_H=20;
+        chart.getDatasetMeta(2).data.forEach((pt,i)=>{
+          const v=ratios[i]; if(v===undefined||v===null) return;
+          const{x,y}=pt.getProps(['x','y'],true);
+          const lbl=v+'%';
+          ctx.font='bold 12px "JetBrains Mono",monospace';
+          const tw=ctx.measureText(lbl).width+14;
+          const by=y-CONV_H-6;
+          ctx.fillStyle='rgba(4,6,18,0.88)';
+          ctx.beginPath();ctx.roundRect(x-tw/2,by,tw,CONV_H,5);ctx.fill();
+          ctx.strokeStyle='rgba(251,191,36,0.55)';ctx.lineWidth=1.5;
+          ctx.beginPath();ctx.roundRect(x-tw/2,by,tw,CONV_H,5);ctx.stroke();
+          ctx.fillStyle='#fbbf24';ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.fillText(lbl,x,by+CONV_H/2);
+        });
+        ctx.restore();
+      }
+    }]
+  });
+}
+
 /* ── MANAGER CHART ── */
 function buildMgrChart(){
   dc('mgrChart');
@@ -1534,6 +1791,10 @@ function buildMgrChart(){
   });
   const ratios=labels.map(l=>apps[l]?+((admits[l]||0)/apps[l]*100).toFixed(1):0);
   document.getElementById('mgrChip').textContent=labels.length+' managers';
+
+  const mgrAllVals=[...labels.map(l=>apps[l]),...labels.map(l=>admits[l]||0)].filter(Boolean);
+  const mgrYMax=mgrAllVals.length?Math.ceil(Math.max(...mgrAllVals)*1.18):100;
+
   const ctx=document.getElementById('mgrChart').getContext('2d');
   CHS.mgrChart=new Chart(ctx,{
     type:'bar',
@@ -1575,7 +1836,7 @@ function buildMgrChart(){
         x:{grid:{color:'rgba(255,255,255,0.04)'},
            ticks:{color:'#c8d0e0',font:{family:'Nunito',size:14,weight:'900'},padding:10},
            border:{display:false}},
-        y:{grid:{color:'rgba(255,255,255,0.045)'},
+        y:{min:0,max:mgrYMax,grid:{color:'rgba(255,255,255,0.045)'},
            ticks:{color:'#38445a',font:{family:'JetBrains Mono',size:11},padding:6},
            border:{display:false}},
         y2:{position:'right',min:0,max:100,grid:{display:false},
@@ -1678,7 +1939,6 @@ function buildMgrChart(){
 /* ── MANAGER DRILL-DOWN ── */
 function openMgrModal(mgrName, mode){
   const rows = FILTERED.filter(r => String(r[C.manager]||'').trim() === mgrName);
-  const subset = mode === 'Admissions' ? rows.filter(r => isAdmit(r)) : rows;
 
   const mgrApps   = rows.filter(r=>!isAdmit(r)).length;
   document.getElementById('mdrName').textContent = mgrName;
@@ -1713,22 +1973,16 @@ function openMgrModal(mgrName, mode){
         position:relative;flex-shrink:0;
       " onmouseover="this.style.background='linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))';this.style.borderColor='rgba(255,255,255,0.14)'"
          onmouseout="this.style.background='linear-gradient(145deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))';this.style.borderColor='rgba(255,255,255,0.08)'">
-        <!-- rank -->
-        <div style="position:absolute;top:8px;right:8px;min-width:26px;height:26px;border-radius:7px;padding:0 5px;background:${rankBg};border:1px solid ${rankColor};display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:900;color:${rankColor};font-family:'JetBrains Mono',monospace;z-index:1;">${idx+1}</div>
-        <!-- name + pct -->
         <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:7px;padding-right:34px;">
           <div style="font-size:0.85rem;font-weight:900;color:#fff;letter-spacing:-0.02em;line-height:1.3;flex:1;word-break:break-word;">${name}</div>
           <span style="font-size:0.82rem;font-weight:900;color:${pc};font-family:'JetBrains Mono',monospace;text-shadow:0 0 12px ${pc}88;white-space:nowrap;flex-shrink:0;">${pct}%</span>
         </div>
-        <!-- apps bar -->
         <div style="height:6px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;margin-bottom:3px;">
           <div style="height:100%;width:${w}%;border-radius:4px;background:${barGradient};"></div>
         </div>
-        <!-- admits bar -->
         <div style="height:4px;border-radius:3px;background:rgba(255,255,255,0.04);overflow:hidden;margin-bottom:7px;">
           <div style="height:100%;width:${wAdm}%;border-radius:3px;background:linear-gradient(90deg,#18e96e,#7fffc4);"></div>
         </div>
-        <!-- stats row -->
         <div style="display:flex;gap:14px;">
           <span style="font-size:0.68rem;color:rgba(255,255,255,0.4);font-family:'JetBrains Mono',monospace;">Apps <span style="color:#e2e8f0;font-weight:900;font-size:0.82rem;">${d.apps}</span></span>
           <span style="font-size:0.68rem;color:rgba(255,255,255,0.4);font-family:'JetBrains Mono',monospace;">Admits <span style="color:#86efac;font-weight:900;font-size:0.82rem;">${d.admits}</span></span>
@@ -1737,14 +1991,6 @@ function openMgrModal(mgrName, mode){
     }).join('');
   }
 
-  // TL map
-  const tlMap = {};
-  subset.forEach(r=>{
-    const tl = String(r[C.tl]||'').trim()||'—';
-    if(!tlMap[tl]) tlMap[tl]={apps:0,admits:0};
-    tlMap[tl].apps++;
-    if(isAdmit(r)) tlMap[tl].admits++;
-  });
   // TL map — apps = non-admitted, admits = admitted
   const tlFull = {};
   rows.forEach(r=>{
@@ -1753,19 +1999,54 @@ function openMgrModal(mgrName, mode){
     if(isAdmit(r)) tlFull[tl].admits++;
     else tlFull[tl].apps++;
   });
-  document.getElementById('mdrTLCount').textContent = Object.keys(tlFull).length + ' TLs';
-  document.getElementById('mdrTLs').innerHTML = buildCards(tlFull, 'var(--purple)', 'linear-gradient(90deg,#b57bff,#d8b4fe)');
+  const tlNames = Object.keys(tlFull);
+  document.getElementById('mdrTLCount').textContent = tlNames.length + ' TLs';
 
-  // Counsellor map — apps = non-admitted, admits = admitted
-  const cnFull = {};
-  rows.forEach(r=>{
-    const cn = String(r[C.counsellor]||'').trim()||'—';
-    if(!cnFull[cn]) cnFull[cn]={apps:0,admits:0};
-    if(isAdmit(r)) cnFull[cn].admits++;
-    else cnFull[cn].apps++;
-  });
-  document.getElementById('mdrCnCount').textContent = Object.keys(cnFull).length + ' counsellors';
-  document.getElementById('mdrCnsls').innerHTML = buildCards(cnFull, 'var(--ally)', 'linear-gradient(90deg,#06b6d4,#a5f3fc)');
+  // Make TL cards clickable — filter counsellors on click
+  const tlSorted = Object.entries(tlFull).sort((a,b)=>b[1].apps-a[1].apps);
+  const maxTL = Math.max(...tlSorted.map(([,v])=>v.apps),1);
+  document.getElementById('mdrTLs').innerHTML = tlSorted.map(([name,d],idx)=>{
+    const total = d.apps+d.admits;
+    const pct = total?(d.admits/total*100).toFixed(1):0;
+    const w   = Math.max((d.apps/maxTL)*100,d.apps?3:0);
+    const wAdm= d.admits?Math.max((d.admits/maxTL)*100,3):0;
+    const pc  = +pct>=30?'#18e96e':+pct>=15?'#ffcc00':'#ff6b6b';
+    const rankColor = idx===0?'#ffcc00':idx===1?'#c0c0c0':idx===2?'#cd7f32':'rgba(255,255,255,0.18)';
+    const rankBg    = idx===0?'rgba(255,204,0,0.12)':idx===1?'rgba(192,192,192,0.1)':idx===2?'rgba(205,127,50,0.1)':'rgba(255,255,255,0.04)';
+    const esc = name.replace(/'/g,"\'");
+    return `<div id="mdrTL_${idx}" onclick="filterMgrCounsellors('${esc}', this)" style="
+      background:linear-gradient(145deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));
+      border:1px solid rgba(255,255,255,0.08);
+      border-left:3px solid var(--purple);
+      border-radius:12px;padding:10px 12px;
+      cursor:pointer;position:relative;flex-shrink:0;
+      transition:border-color 0.15s,background 0.15s,box-shadow 0.15s;
+    " onmouseover="if(!this.classList.contains('tl-active')){this.style.background='linear-gradient(145deg,rgba(181,123,255,0.1),rgba(181,123,255,0.04))';this.style.borderColor='rgba(181,123,255,0.4)';}"
+       onmouseout="if(!this.classList.contains('tl-active')){this.style.background='linear-gradient(145deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))';this.style.borderColor='rgba(255,255,255,0.08)';}">
+      <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px;padding-right:30px;">
+        <div style="font-size:0.82rem;font-weight:900;color:#fff;letter-spacing:-0.02em;flex:1;word-break:break-word;">${name}</div>
+        <span style="font-size:0.78rem;font-weight:900;color:${pc};font-family:'JetBrains Mono',monospace;white-space:nowrap;">${pct}%</span>
+      </div>
+      <div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;margin-bottom:2px;">
+        <div style="height:100%;width:${w}%;background:linear-gradient(90deg,#b57bff,#d8b4fe);border-radius:3px;"></div>
+      </div>
+      <div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.04);overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;width:${wAdm}%;background:linear-gradient(90deg,#18e96e,#7fffc4);border-radius:2px;"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span style="font-size:0.62rem;color:rgba(255,255,255,0.35);font-family:'JetBrains Mono',monospace;">Apps <span style="color:#e2e8f0;font-weight:900;">${d.apps}</span></span>
+        <span style="font-size:0.62rem;color:rgba(255,255,255,0.35);font-family:'JetBrains Mono',monospace;">Admits <span style="color:#86efac;font-weight:900;">${d.admits}</span></span>
+
+      </div>
+    </div>`;
+  }).join('');
+
+  // Store rows on window for counsellor filter function
+  window._mgrRows = rows;
+  window._mgrActiveTL = null;
+
+  // Build counsellors from all rows initially
+  renderMgrCounsellors(rows, buildCards);
 
   const modal = document.getElementById('mgrModal');
   modal.style.display = 'flex';
@@ -1773,6 +2054,109 @@ function openMgrModal(mgrName, mode){
   const panel = document.getElementById('mgrPanel');
   panel.style.animation = 'none';
   requestAnimationFrame(()=>{ panel.style.animation = ''; });
+}
+
+function renderMgrCounsellors(rows, buildCards){
+  if(!buildCards){
+    // rebuild buildCards inline when called from filter
+    buildCards = function(map, accentColor, barGradient){
+      const sorted = Object.entries(map).sort((a,b)=>b[1].apps-a[1].apps);
+      const maxV = Math.max(...sorted.map(([,v])=>v.apps), 1);
+      return sorted.map(([name, d], idx)=>{
+        const pct = d.apps ? (d.admits/d.apps*100).toFixed(1) : 0;
+        const w   = Math.max((d.apps/maxV)*100, 3);
+        const wAdm= d.apps && d.admits ? Math.max((d.admits/maxV)*100, 3) : 0;
+        const pc  = +pct>=30?'#18e96e':+pct>=15?'#ffcc00':'#ff6b6b';
+        const rankColor = idx===0?'#ffcc00':idx===1?'#c0c0c0':idx===2?'#cd7f32':'rgba(255,255,255,0.18)';
+        const rankBg    = idx===0?'rgba(255,204,0,0.12)':idx===1?'rgba(192,192,192,0.1)':idx===2?'rgba(205,127,50,0.1)':'rgba(255,255,255,0.04)';
+        return `<div style="background:linear-gradient(145deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));border:1px solid rgba(255,255,255,0.08);border-left:3px solid ${accentColor};border-radius:12px;padding:10px 12px;transition:border-color 0.15s,background 0.15s;position:relative;flex-shrink:0;">
+          <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:7px;padding-right:34px;">
+            <div style="font-size:0.85rem;font-weight:900;color:#fff;letter-spacing:-0.02em;flex:1;word-break:break-word;">${name}</div>
+            <span style="font-size:0.82rem;font-weight:900;color:${pc};font-family:'JetBrains Mono',monospace;white-space:nowrap;">${pct}%</span>
+          </div>
+          <div style="height:6px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;margin-bottom:3px;"><div style="height:100%;width:${w}%;background:${barGradient};border-radius:4px;"></div></div>
+          <div style="height:4px;border-radius:3px;background:rgba(255,255,255,0.04);overflow:hidden;margin-bottom:7px;"><div style="height:100%;width:${wAdm}%;background:linear-gradient(90deg,#18e96e,#7fffc4);border-radius:3px;"></div></div>
+          <div style="display:flex;gap:14px;">
+            <span style="font-size:0.68rem;color:rgba(255,255,255,0.4);font-family:'JetBrains Mono',monospace;">Apps <span style="color:#e2e8f0;font-weight:900;font-size:0.82rem;">${d.apps}</span></span>
+            <span style="font-size:0.68rem;color:rgba(255,255,255,0.4);font-family:'JetBrains Mono',monospace;">Admits <span style="color:#86efac;font-weight:900;font-size:0.82rem;">${d.admits}</span></span>
+          </div>
+        </div>`;
+      }).join('');
+    };
+  }
+  const cnFull = {};
+  rows.forEach(r=>{
+    const cn = String(r[C.counsellor]||'').trim()||'—';
+    if(!cnFull[cn]) cnFull[cn]={apps:0,admits:0};
+    if(isAdmit(r)) cnFull[cn].admits++;
+    else cnFull[cn].apps++;
+  });
+  const count = Object.keys(cnFull).length;
+  const tlLabel = window._mgrActiveTL ? ` · ${window._mgrActiveTL}` : '';
+  document.getElementById('mdrCnCount').textContent = count + ' counsellors' + tlLabel;
+
+  // Render counsellor cards with correct pct = admits / (apps+admits)
+  const cnSorted = Object.entries(cnFull).sort((a,b)=>b[1].apps-a[1].apps);
+  const cnMaxV = Math.max(...cnSorted.map(([,v])=>v.apps+v.admits), 1);
+  document.getElementById('mdrCnsls').innerHTML = cnSorted.map(([name,d])=>{
+    const total = d.apps + d.admits;
+    const pct = total ? (d.admits/total*100).toFixed(1) : 0;
+    const w    = Math.max((d.apps/cnMaxV)*100, d.apps?3:0);
+    const wAdm = Math.max((d.admits/cnMaxV)*100, d.admits?3:0);
+    const pc   = +pct>=30?'#18e96e':+pct>=15?'#ffcc00':'#ff6b6b';
+    return `<div style="background:linear-gradient(145deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));border:1px solid rgba(255,255,255,0.08);border-left:3px solid var(--ally);border-radius:12px;padding:10px 12px;transition:border-color 0.15s,background 0.15s;position:relative;flex-shrink:0;"
+      onmouseover="this.style.background='linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))';this.style.borderColor='rgba(255,255,255,0.14)'"
+      onmouseout="this.style.background='linear-gradient(145deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))';this.style.borderColor='rgba(255,255,255,0.08)'">
+      <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:7px;">
+        <div style="font-size:0.85rem;font-weight:900;color:#fff;letter-spacing:-0.02em;flex:1;word-break:break-word;">${name}</div>
+        <span style="font-size:0.82rem;font-weight:900;color:${pc};font-family:'JetBrains Mono',monospace;white-space:nowrap;text-shadow:0 0 12px ${pc}88;">${pct}%</span>
+      </div>
+      <div style="height:6px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;margin-bottom:3px;">
+        <div style="height:100%;width:${w}%;background:linear-gradient(90deg,#06b6d4,#a5f3fc);border-radius:4px;"></div>
+      </div>
+      <div style="height:4px;border-radius:3px;background:rgba(255,255,255,0.04);overflow:hidden;margin-bottom:7px;">
+        <div style="height:100%;width:${wAdm}%;background:linear-gradient(90deg,#18e96e,#7fffc4);border-radius:3px;"></div>
+      </div>
+      <div style="display:flex;gap:14px;">
+        <span style="font-size:0.68rem;color:rgba(255,255,255,0.4);font-family:'JetBrains Mono',monospace;">Apps <span style="color:#e2e8f0;font-weight:900;font-size:0.82rem;">${d.apps}</span></span>
+        <span style="font-size:0.68rem;color:rgba(255,255,255,0.4);font-family:'JetBrains Mono',monospace;">Admits <span style="color:#86efac;font-weight:900;font-size:0.82rem;">${d.admits}</span></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterMgrCounsellors(tlName, el){
+  const allRows = window._mgrRows;
+  if(!allRows) return;
+  // Toggle: if already active, reset to all
+  if(window._mgrActiveTL === tlName){
+    window._mgrActiveTL = null;
+    // reset all TL card styles
+    document.querySelectorAll('#mdrTLs > div').forEach(c=>{
+      c.classList.remove('tl-active');
+      c.style.background='linear-gradient(145deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))';
+      c.style.borderColor='rgba(255,255,255,0.08)';
+      c.style.boxShadow='none';
+    });
+    renderMgrCounsellors(allRows);
+  } else {
+    window._mgrActiveTL = tlName;
+    // highlight selected, dim others
+    document.querySelectorAll('#mdrTLs > div').forEach(c=>{
+      c.classList.remove('tl-active');
+      c.style.background='linear-gradient(145deg,rgba(255,255,255,0.02),rgba(255,255,255,0.005))';
+      c.style.borderColor='rgba(255,255,255,0.05)';
+      c.style.boxShadow='none';
+      c.style.opacity='0.45';
+    });
+    el.classList.add('tl-active');
+    el.style.background='linear-gradient(145deg,rgba(181,123,255,0.16),rgba(181,123,255,0.06))';
+    el.style.borderColor='rgba(181,123,255,0.7)';
+    el.style.boxShadow='0 0 20px rgba(181,123,255,0.2)';
+    el.style.opacity='1';
+    const filtered = allRows.filter(r=>String(r[C.tl]||'').trim()===tlName);
+    renderMgrCounsellors(filtered);
+  }
 }
 
 function closeMgrModal(){
@@ -1814,12 +2198,13 @@ function openTLModal(tlName, mode){
     else cnMap[cn].apps++;
   });
   const sorted = Object.entries(cnMap).sort((a,b) => b[1].apps - a[1].apps);
-  const maxV   = Math.max(...sorted.map(([,v]) => v.apps), 1);
+  const maxV   = Math.max(...sorted.map(([,v]) => v.apps+v.admits), 1);
 
   document.getElementById('tldrCnCount').textContent = sorted.length + ' counsellors';
   document.getElementById('tldrCnsls').innerHTML = sorted.map(([name, d], idx) => {
-    const pct  = d.apps ? (d.admits/d.apps*100).toFixed(1) : 0;
-    const w    = Math.max((d.apps/maxV)*100, 3);
+    const _tot = d.apps+d.admits;
+    const pct  = _tot ? (d.admits/_tot*100).toFixed(1) : 0;
+    const w    = Math.max((d.apps/maxV)*100, d.apps?3:0);
     const wAdm = d.admits ? Math.max((d.admits/maxV)*100, 3) : 0;
     const pc   = +pct>=30?'#18e96e':+pct>=15?'#ffcc00':'#ff6b6b';
     const rankColor = idx===0?'#ffcc00':idx===1?'#c0c0c0':idx===2?'#cd7f32':'rgba(255,255,255,0.18)';
@@ -1833,7 +2218,6 @@ function openTLModal(tlName, mode){
       transition:background 0.15s,border-color 0.15s;
     " onmouseover="this.style.background='linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))';this.style.borderColor='rgba(255,255,255,0.14)'"
        onmouseout="this.style.background='linear-gradient(145deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))';this.style.borderColor='rgba(255,255,255,0.08)'">
-      <div style="position:absolute;top:8px;right:8px;min-width:26px;height:26px;border-radius:7px;padding:0 5px;background:${rankBg};border:1px solid ${rankColor};display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:900;color:${rankColor};font-family:'JetBrains Mono',monospace;z-index:1;">${idx+1}</div>
       <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:7px;padding-right:34px;">
         <div style="font-size:0.85rem;font-weight:900;color:#fff;letter-spacing:-0.02em;line-height:1.3;flex:1;word-break:break-word;">${name}</div>
         <span style="font-size:0.82rem;font-weight:900;color:${pc};font-family:'JetBrains Mono',monospace;text-shadow:0 0 12px ${pc}88;white-space:nowrap;flex-shrink:0;">${pct}%</span>
@@ -1877,9 +2261,24 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeMgrModal();
 
 function buildProcDonut(){
   dc('procDonut');
-  const procs=uniq(RAW,C.process);
-  if(!procs.length) return;
-  const data=procs.map(p=>RAW.filter(r=>String(r[C.process]||'').trim()===p).length);
+  let procs=uniq(FILTERED,C.process);
+  // Count only applications (non-admitted) per process — consistent with KPI strip
+  let data=procs.map(p=>FILTERED.filter(r=>String(r[C.process]||'').trim()===p && r._admit!==1).length);
+  // Remove processes with zero apps so donut has no ghost slices
+  const _filtered = procs.map((p,i)=>({p,v:data[i]})).filter(x=>x.v>0);
+  procs = _filtered.map(x=>x.p);
+  data  = _filtered.map(x=>x.v);
+
+  // Always reset center text and chip first
+  document.getElementById('procDonutChip').textContent = procs.length + ' processes';
+  document.getElementById('procDonutLegend').innerHTML = '';
+
+  if(!procs.length || !data.length){
+    document.getElementById('donutTotal').textContent = '0';
+    document.getElementById('procDonutLegend').innerHTML =
+      '<div style="text-align:center;padding:1rem 0;color:var(--dim);font-size:0.75rem;font-family:\'JetBrains Mono\',monospace;letter-spacing:0.08em;">NO DATA FOR THIS FILTER</div>';
+    return;
+  }
   const total=data.reduce((a,b)=>a+b,0);
 
   const COLORS=['#ff6a1a','#00d4f5','#b57bff','#18e96e','#ffcc00','#ff3a6e','#4f8fff','#f472b6'];
@@ -1891,56 +2290,109 @@ function buildProcDonut(){
   const legEl=document.getElementById('procDonutLegend');
   legEl.innerHTML=procs.map((p,i)=>{
     const pct=total?((data[i]/total)*100).toFixed(1):0;
-    const admitsCnt=RAW.filter(r=>String(r[C.process]||'').trim()===p&&isAdmit(r)).length;
-    const conv=data[i]?(admitsCnt/data[i]*100).toFixed(1):0;
-    const barW=pct>0?pct:0;
-    return `<div style="cursor:default;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:8px 10px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-        <span style="width:9px;height:9px;border-radius:3px;flex-shrink:0;background:${BG[i]};box-shadow:0 0 8px ${BG[i]}99;"></span>
-        <div style="font-size:0.78rem;font-weight:900;color:var(--text);letter-spacing:-0.01em;flex:1;">${p}</div>
-        <div style="font-size:0.68rem;font-weight:800;color:${BG[i]};font-family:'JetBrains Mono',monospace;">${pct}%</div>
-      </div>
-      <div style="display:flex;gap:10px;margin-bottom:6px;">
-        <div style="text-align:center;flex:1;">
-          <div style="font-size:0.62rem;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-bottom:1px;">APPS</div>
-          <div style="font-size:0.82rem;font-weight:900;color:${BG[i]};font-family:'JetBrains Mono',monospace;">${fmt(data[i])}</div>
-        </div>
-        <div style="width:1px;background:rgba(255,255,255,0.07);"></div>
-        <div style="text-align:center;flex:1;">
-          <div style="font-size:0.62rem;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-bottom:1px;">ADMIT</div>
-          <div style="font-size:0.82rem;font-weight:900;color:var(--green2);font-family:'JetBrains Mono',monospace;">${fmt(admitsCnt)}</div>
-        </div>
-        <div style="width:1px;background:rgba(255,255,255,0.07);"></div>
-        <div style="text-align:center;flex:1;">
-          <div style="font-size:0.62rem;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-bottom:1px;">CONV</div>
-          <div style="font-size:0.82rem;font-weight:900;color:var(--gold2);font-family:'JetBrains Mono',monospace;">${conv}%</div>
-        </div>
-      </div>
-      <div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;">
-        <div style="height:100%;width:${barW}%;border-radius:2px;background:linear-gradient(90deg,${BG[i]}88,${BG[i]});transition:width 1s ease;box-shadow:0 0 6px ${BG[i]}66;"></div>
-      </div>
+    const admitsCnt=FILTERED.filter(r=>String(r[C.process]||'').trim()===p&&isAdmit(r)).length;
+    // conv = admits / total rows for process (apps + admits)
+    const processTotal = data[i] + admitsCnt;
+    const conv=processTotal?(admitsCnt/processTotal*100).toFixed(1):0;
+    return `<div style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:5px 12px 5px 8px;">
+      <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${BG[i]};box-shadow:0 0 7px ${BG[i]}bb;"></span>
+      <span style="font-size:0.73rem;font-weight:800;color:var(--text);letter-spacing:-0.01em;">${p}</span>
+      <span style="font-size:0.68rem;font-weight:800;color:${BG[i]};font-family:'JetBrains Mono',monospace;margin-left:2px;">${pct}%</span>
+      <span style="width:1px;height:12px;background:rgba(255,255,255,0.1);"></span>
+      <span style="font-size:0.65rem;color:var(--sub);font-family:'JetBrains Mono',monospace;">${fmt(data[i])} apps · <span style="color:var(--green2)">${fmt(admitsCnt)}</span> · <span style="color:var(--gold2)">${conv}%</span></span>
     </div>`;
   }).join('');
 
   const canvasEl=document.getElementById('procDonut');
   const dCtx=canvasEl.getContext('2d');
+
+  /* ── custom plugin: draw labels outside each segment ── */
+  const outerLabelPlugin={
+    id:'outerLabels',
+    afterDraw(chart){
+      const {ctx,chartArea:{width,height}}=chart;
+      const cx=chart.getDatasetMeta(0).data[0]?.x??width/2;
+      const cy=chart.getDatasetMeta(0).data[0]?.y??height/2;
+      const meta=chart.getDatasetMeta(0);
+      const ds=chart.data.datasets[0];
+      const tot=ds.data.reduce((a,b)=>a+b,0);
+      ctx.save();
+      meta.data.forEach((arc,i)=>{
+        const pct=tot?(ds.data[i]/tot*100):0;
+        if(pct<1.5) return;
+        const label=chart.data.labels[i];
+        const color=BG[i];
+        const isActive = ACTIVE===label;
+        const midAngle=(arc.startAngle+arc.endAngle)/2;
+        const outerR=arc.outerRadius;
+        const labelR=outerR+(isActive?34:28);
+        const lx=cx+Math.cos(midAngle)*labelR;
+        const ly=cy+Math.sin(midAngle)*labelR;
+
+        // draw active ring indicator
+        if(isActive){
+          ctx.beginPath();
+          ctx.arc(lx,ly-18,4,0,Math.PI*2);
+          ctx.fillStyle=color;
+          ctx.shadowColor=color;
+          ctx.shadowBlur=10;
+          ctx.fill();
+          ctx.shadowBlur=0;
+        }
+
+        // process name
+        ctx.font=(isActive?'900':'800')+' '+(isActive?'15':'13')+'px Nunito, sans-serif';
+        ctx.fillStyle=isActive?'#ffffff':'rgba(255,255,255,0.75)';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.shadowColor=color;
+        ctx.shadowBlur=isActive?14:6;
+        ctx.fillText(label,lx,ly-7);
+
+        // pct below name
+        ctx.font=(isActive?'900':'700')+' '+(isActive?'13':'11')+'px JetBrains Mono, monospace';
+        ctx.fillStyle=color;
+        ctx.shadowColor=color;
+        ctx.shadowBlur=isActive?16:8;
+        ctx.fillText(pct.toFixed(1)+'%',lx,ly+9);
+        ctx.shadowBlur=0;
+      });
+      // draw "click to filter" hint in center bottom if nothing selected
+      if(ACTIVE==='All'){
+        ctx.font='600 10px JetBrains Mono, monospace';
+        ctx.fillStyle='rgba(255,255,255,0.2)';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText('CLICK SEGMENT TO FILTER',cx,cy+58);
+      } else {
+        ctx.font='700 10px JetBrains Mono, monospace';
+        ctx.fillStyle='rgba(255,255,255,0.35)';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText('CLICK AGAIN TO RESET',cx,cy+58);
+      }
+      ctx.restore();
+    }
+  };
+
   CHS.procDonut=new Chart(dCtx,{
     type:'doughnut',
     data:{
       labels:procs,
       datasets:[{
         data,
-        backgroundColor:BG.map(c=>c+'aa'),
-        borderColor:BG.map(c=>c+'ff'),
-        borderWidth:3,
+        backgroundColor:BG.map((c,i)=> ACTIVE==='All' ? c+'aa' : (procs[i]===ACTIVE ? c+'ee' : c+'33')),
+        borderColor:BG.map((c,i)=> ACTIVE==='All' ? c+'ff' : (procs[i]===ACTIVE ? c+'ff' : c+'55')),
+        borderWidth:BG.map((_,i)=> procs[i]===ACTIVE ? 4 : 2),
         hoverBackgroundColor:BG.map(c=>c+'dd'),
         hoverBorderWidth:4,
-        hoverOffset:12,
+        hoverOffset:14,
       }]
     },
     options:{
       responsive:true,maintainAspectRatio:false,
-      cutout:'74%',
+      cutout:'68%',
+      layout:{padding:65},
       plugins:{
         legend:{display:false},
         tooltip:{
@@ -1953,8 +2405,24 @@ function buildProcDonut(){
           }
         }
       },
-      animation:{animateRotate:true,animateScale:true,duration:500,easing:'easeOutQuart'}
-    }
+      animation:{animateRotate:true,animateScale:true,duration:500,easing:'easeOutQuart'},
+      onClick(e,elements){
+        if(!elements.length){
+          // Click on empty area = reset to All
+          if(ACTIVE!=='All'){ setP('All'); }
+          return;
+        }
+        const clickedProc = procs[elements[0].index];
+        if(!clickedProc) return;
+        // Toggle: click same process again = reset to All
+        if(ACTIVE===clickedProc) setP('All');
+        else setP(clickedProc);
+      },
+      onHover(e,elements){
+        e.native.target.style.cursor=elements.length?'pointer':'default';
+      }
+    },
+    plugins:[outerLabelPlugin]
   });
 }
 
@@ -1962,12 +2430,15 @@ function buildProcDonut(){
 document.addEventListener('DOMContentLoaded', () => {
   const url      = document.getElementById('apiUrl').value.trim();
   const CACHE_K  = 'hs_dash_cache';
-  const CACHE_TTL = 5 * 60 * 1000; // 5 min
+  const CACHE_TTL = 2 * 60 * 1000; // 2 min
   const loadTxt  = document.querySelector('.load-txt');
   const loadSub  = document.getElementById('loadSub');
   const loadRetry= document.getElementById('loadRetry');
 
-  /* ── cache read ── */
+  let _fetchRetryCount = 0;
+  const MAX_RETRIES = 3;
+
+  /* ── cache read — only used as warm-start while live fetch runs ── */
   function tryCache(){
     try{
       const raw = localStorage.getItem(CACHE_K);
@@ -1976,14 +2447,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!data||!data.length) return false;
       HDRS=headers; RAW=data;
       autoDetect(headers); buildAdmitSet(RAW); warmColors(RAW);
-      ACTIVE='All'; render(true);
-      const age=Math.round((Date.now()-ts)/1000);
-      const fresh=(Date.now()-ts)<CACHE_TTL;
-      setSt('live',data.length.toLocaleString('en-IN')+' rows'+(fresh?'':' (stale)'));
+      ACTIVE='All'; _cnslHash=''; _tlHash=''; _kpiHash=''; render(true);
+      setSt('live',data.length.toLocaleString('en-IN')+' rows (cached)');
       document.getElementById('demoBanner').style.display='none';
-      console.log(`⚡ Cache (${age}s, ${fresh?'fresh':'stale'})`);
-      return {stale:!fresh};
-    }catch(e){return false;}
+      return true;
+    }catch(e){ return false; }
   }
 
   /* ── cache write ── */
@@ -1995,83 +2463,101 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /* ── fetch live ── */
+  /* ── fetch live — NEVER falls back to demo when URL is configured ── */
   function fetchLive(silent){
     if(!url) return;
     if(!silent){
-      loadTxt.textContent='Loading live data…';
-      loadSub.textContent='Connecting to Google Sheet…';
+      if(!RAW.length){
+        loadTxt.textContent='Loading live data…';
+        loadSub.textContent='Connecting to Google Sheet…';
+      }
     }
     const ctrl=new AbortController();
-    const timeout=setTimeout(()=>ctrl.abort(),12000);
-    const slowTimer=!silent?setTimeout(()=>{ if(loadSub) loadSub.textContent='Sheet is slow — still connecting…'; },4000):null;
+    const timeout=setTimeout(()=>ctrl.abort(),25000);
+    const slowTimer=setTimeout(()=>{
+      if(!silent && loadSub) loadSub.textContent='Sheet is waking up — please wait…';
+      setSt('');
+    }, 5000);
 
     fetch(url,{signal:ctrl.signal})
       .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(j=>{
-        clearTimeout(timeout); if(slowTimer) clearTimeout(slowTimer);
+        clearTimeout(timeout); clearTimeout(slowTimer);
         if(j.error) throw new Error(j.error);
+        if(!j.data||!j.data.length) throw new Error('Empty response');
 
-        const prevLen=RAW.length;
+        _fetchRetryCount=0;
         HDRS=j.headers; RAW=j.data;
         autoDetect(j.headers); buildAdmitSet(RAW); warmColors(RAW);
         saveCache(j.headers,j.data);
         setSt('live',j.totalRows.toLocaleString('en-IN')+' rows');
         document.getElementById('demoBanner').style.display='none';
-
-        const changed = j.totalRows !== prevLen;
-        if(!silent || changed){
-          ACTIVE='All'; _cnslHash=''; _tlHash='';
-          render(true);
-        }
-        // Pulse the live dot on refresh
+        _cnslHash=''; _tlHash=''; _kpiHash='';
+        render(true);
         const dot=document.getElementById('dot');
         dot.style.transition='transform 0.2s';
         dot.style.transform='scale(1.7)';
         setTimeout(()=>{ dot.style.transform='scale(1)'; },350);
-        console.log(`✅ Live: ${j.totalRows} rows (changed:${changed})`);
+        console.log('✅ Live: '+j.totalRows+' rows');
       })
       .catch(e=>{
-        clearTimeout(timeout); if(slowTimer) clearTimeout(slowTimer);
-        const reason=e.name==='AbortError'?'Timed out (12s)':e.message;
+        clearTimeout(timeout); clearTimeout(slowTimer);
+        const reason=e.name==='AbortError'?'Request timed out':e.message;
         console.warn('❌ Fetch failed:',reason);
-        if(!silent){
-          loadTxt.textContent='Sheet unavailable';
-          loadSub.textContent=reason+' — showing demo data';
-          loadRetry.style.display='inline-block';
-          setTimeout(()=>{
-            setSt('err'); RAW=demo(); buildAdmitSet(RAW); warmColors(RAW);
-            ACTIVE='All'; render(true);
-          },1200);
-        } else { setSt('err'); }
+
+        // If we have real data already showing — just mark stale, NEVER replace with demo
+        if(RAW.length){
+          setSt('err');
+          console.warn('Keeping existing data. Next retry in 30s.');
+          setTimeout(()=>fetchLive(true), 30000);
+          return;
+        }
+
+        // No data at all — retry up to MAX_RETRIES before showing retry button
+        _fetchRetryCount++;
+        if(_fetchRetryCount <= MAX_RETRIES){
+          const wait=_fetchRetryCount*4000;
+          if(loadSub) loadSub.textContent='Retrying ('+_fetchRetryCount+'/'+MAX_RETRIES+')…';
+          console.warn('Retry '+_fetchRetryCount+' in '+wait/1000+'s');
+          setTimeout(()=>fetchLive(false), wait);
+        } else {
+          // All retries exhausted — show retry button, NO demo data
+          _fetchRetryCount=0;
+          if(loadTxt) loadTxt.textContent='Cannot connect to Google Sheet';
+          if(loadSub) loadSub.textContent=reason+' — check your network and retry';
+          if(loadRetry) loadRetry.style.display='inline-block';
+          setSt('err');
+        }
       });
   }
 
-  /* ── auto-refresh every 5 min ── */
+  /* ── auto-refresh every 2 min ── */
   function scheduleRefresh(){
     setTimeout(()=>{
-      if(document.visibilityState!=='hidden'){ console.log('🔄 Auto-refresh'); fetchLive(true); }
+      if(document.visibilityState!=='hidden'){ fetchLive(true); }
       scheduleRefresh();
     }, CACHE_TTL);
   }
 
-  /* ── refresh on tab focus if data is stale ── */
+  /* ── refresh on tab focus if cache is stale ── */
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible' && RAW.length){
       try{
         const r=localStorage.getItem(CACHE_K);
-        if(r){ const {ts}=JSON.parse(r); if(Date.now()-ts>CACHE_TTL){ console.log('👁 Stale on focus, refreshing'); fetchLive(true); } }
+        if(r){ const {ts}=JSON.parse(r); if(Date.now()-ts>CACHE_TTL){ fetchLive(true); } }
       }catch(e){}
     }
   });
 
+  // No URL = offline/dev mode only
   if(!url){
     RAW=demo(); buildAdmitSet(RAW); warmColors(RAW);
     ACTIVE='All'; render(true); return;
   }
 
-  const cacheResult=tryCache();
-  fetchLive(cacheResult?true:false);
+  // Warm-start from cache immediately, then always fetch live data on top
+  const hasCached = tryCache();
+  fetchLive(hasCached); // silent=true if cache rendered, silent=false if loading fresh
   scheduleRefresh();
 });
 
