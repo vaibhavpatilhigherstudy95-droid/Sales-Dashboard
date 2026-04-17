@@ -1852,6 +1852,97 @@ body.role-director #dlWrap {
   background:rgba(255,255,255,.11);
   color:rgba(255,255,255,.6);
 }
+
+/* ═══════════════════════════════════════
+   UPDATE OVERLAY
+═══════════════════════════════════════ */
+#updateOverlay{
+  position:fixed;inset:0;z-index:8888;
+  display:none;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+#updateOverlay.show{
+  display:flex;pointer-events:all;
+}
+#updateOverlay::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(7,8,15,.6);
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+  animation:updBgIn .22s ease both;
+}
+@keyframes updBgIn{from{opacity:0}to{opacity:1}}
+
+.upd-box{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  background:rgba(13,14,28,.95);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:22px;padding:36px 44px 28px;
+  box-shadow:0 28px 70px rgba(0,0,0,.65);
+  animation:updBoxIn .28s cubic-bezier(.34,1.56,.64,1) both;
+  min-width:240px;overflow:hidden;
+}
+@keyframes updBoxIn{
+  from{opacity:0;transform:scale(.88) translateY(10px)}
+  to{opacity:1;transform:none}
+}
+
+/* Dual counter-rotating rings */
+.upd-spinner-wrap{
+  position:relative;width:60px;height:60px;
+  display:flex;align-items:center;justify-content:center;
+}
+.upd-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:3px solid rgba(232,81,42,.18);
+  border-top-color:#e8512a;
+  animation:updSpin .75s linear infinite;
+}
+.upd-ring2{
+  position:absolute;inset:8px;border-radius:50%;
+  border:2px solid rgba(129,140,248,.15);
+  border-bottom-color:#818cf8;
+  animation:updSpin .55s linear infinite reverse;
+}
+@keyframes updSpin{to{transform:rotate(360deg)}}
+.upd-ico{
+  position:relative;font-size:22px;
+  animation:updIcoPulse 1.6s ease-in-out infinite;
+}
+@keyframes updIcoPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.88)}}
+
+.upd-msg{
+  font-size:15px;font-weight:800;color:#fff;
+  letter-spacing:-.01em;text-align:center;
+}
+.upd-sub{
+  font-size:11px;font-weight:600;
+  color:rgba(255,255,255,.32);letter-spacing:.04em;
+  text-align:center;animation:updSubPulse 1.6s ease-in-out infinite;
+}
+@keyframes updSubPulse{0%,100%{opacity:.32}50%{opacity:.65}}
+
+/* Sweeping progress bar */
+.upd-progress{
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  border-radius:0 0 22px 22px;
+  background:linear-gradient(90deg,transparent 0%,#e8512a 40%,#818cf8 60%,transparent 100%);
+  background-size:250% 100%;
+  animation:updBar 1.4s linear infinite;
+}
+@keyframes updBar{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}
+
+/* Dash blur when overlay active */
+#dash.upd-active{
+  filter:blur(2px);
+  pointer-events:none;
+  transition:filter .22s ease;
+}
+#dash{transition:filter .25s ease;}
+
 </style>
 </head>
 <body>
@@ -1863,6 +1954,21 @@ body.role-director #dlWrap {
     <div class="ldr-ico">🎓</div>
   </div>
   <div class="ldr-txt">LOADING LIVE DATA</div>
+</div>
+
+
+<!-- UPDATE OVERLAY -->
+<div id="updateOverlay">
+  <div class="upd-box">
+    <div class="upd-spinner-wrap">
+      <div class="upd-ring"></div>
+      <div class="upd-ring2"></div>
+      <span class="upd-ico">🎓</span>
+    </div>
+    <div class="upd-msg" id="updMsg">Updating Live Data…</div>
+    <div class="upd-sub" id="updSub">Fetching latest records</div>
+    <div class="upd-progress"></div>
+  </div>
 </div>
 
 <!-- CAL OVERLAY -->
@@ -2266,13 +2372,16 @@ body.role-director #dlWrap {
 </div><!-- /wrap -->
 
 <script>
+
+
+
 'use strict';
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════
 const API = 'https://script.google.com/macros/s/AKfycbxFuo0PLZ4ShoaiULi8JfRaCLzS7CWCTJwYXJSnjwIxw1hPpfNeZ-TynjlC7QGbgxDW/exec';
-const CACHE_KEY  = 'hs_v5_';
+const CACHE_KEY  = 'hs_v9_' // v9: raw rows stored, fixes double-norm;
 const MEM_TTL    = 5 * 60 * 1000;   // 5 min — fresher background refresh
 const DISK_TTL   = 60 * 60 * 1000;  // 1 hr disk cache — survive long sessions
 const BG_REFRESH = 5 * 60 * 1000;   // background auto-refresh interval
@@ -2335,6 +2444,7 @@ function fmtInc(n){
   if(n>=1000)   return (n/1000).toFixed(1)+'K';
   return Math.round(n).toLocaleString('en-IN');
 }
+function fmtIncFull(n){ return '₹'+Math.round(n).toLocaleString('en-IN'); }
 function nd(msg){ return`<div class="nodata"><div class="ico">📭</div><p>${msg}</p></div>`; }
 
 // ── Smart status bar ────────────────────────────────────
@@ -2363,6 +2473,29 @@ function setSt(state, extra){
   }
 }
 function setStLoading(){ setSt('fetching'); }
+
+// ── Update overlay ────────────────────────────────────
+let _updTimer = null;
+function showUpdating(msg, sub){
+  const ov = document.getElementById('updateOverlay');
+  const dash = document.getElementById('dash');
+  const msgEl = document.getElementById('updMsg');
+  const subEl = document.getElementById('updSub');
+  if(msgEl) msgEl.textContent = msg || 'Updating Live Data…';
+  if(subEl) subEl.textContent = sub || 'Fetching latest records';
+  if(ov) ov.classList.add('show');
+  if(dash) dash.classList.add('upd-active');
+  clearTimeout(_updTimer);
+}
+function hideUpdating(){
+  clearTimeout(_updTimer);
+  _updTimer = setTimeout(()=>{
+    const ov = document.getElementById('updateOverlay');
+    const dash = document.getElementById('dash');
+    if(ov) ov.classList.remove('show');
+    if(dash) dash.classList.remove('upd-active');
+  }, 100);
+}
 
 // Relative time formatter
 function relTime(ts){
@@ -2439,12 +2572,17 @@ function dkRead(k){
 function dkWrite(k, data){
   const write = () => {
     try{
+      // Save RAW rows (before norm stripped cancels) so re-reading is correct
+      const _rawRows = data._rawSnap || data._rawAllRows || data.trendRows || [];
       const save = {
         netAdm:data.netAdm, totalAdm:data.totalAdm, cancelAdm:data.cancelAdm,
         mgrTargets:data.mgrTargets||{}, mgrTargetsAll:data.mgrTargetsAll||{},
-        trendRows:(data.trendRows||[]).slice(-300),
+        trendRows: _rawRows.slice(-2000),      // raw rows, not normed
+        _rawAllRows: _rawRows.slice(-2000),    // also save as _rawAllRows
       };
-      for(const key of Object.keys(data)){ if(!(key in save)) save[key]=data[key]; }
+      for(const key of Object.keys(data)){
+        if(!(key in save) && !key.startsWith('_')) save[key]=data[key];
+      }
       localStorage.setItem(CACHE_KEY+k, JSON.stringify({data:save, ts:Date.now()}));
     }catch(e){
       try{
@@ -2701,7 +2839,7 @@ async function fetchOne(p, from, to){
   // Return existing in-flight promise for same key (dedup)
   if(_inflight[ck]) return _inflight[ck];
 
-  let url = API+'?sheet='+encodeURIComponent(p);
+  let url = API+'?sheet='+encodeURIComponent(p)+'&t='+Date.now();
   if(from && to) url += `&from=${from}&to=${to}`;
 
   const ctrl = new AbortController();
@@ -2709,7 +2847,14 @@ async function fetchOne(p, from, to){
 
   const promise = fetch(url, {cache:'no-store', signal:ctrl.signal})
     .then(r=>{ clearTimeout(tid); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-    .then(raw=>{ delete _inflight[ck]; _retryCount=0; return norm(raw,p); })
+    .then(raw=>{
+      delete _inflight[ck]; _retryCount=0;
+      // Snapshot original rows BEFORE norm() strips cancels & filters
+      const _snap = Array.isArray(raw.trendRows) ? raw.trendRows.slice() : [];
+      const normed = norm(raw, p);
+      if(normed) normed._rawSnap = _snap;
+      return normed;
+    })
     .catch(e=>{ clearTimeout(tid); delete _inflight[ck]; throw e; });
 
   _inflight[ck] = promise;
@@ -2738,12 +2883,20 @@ async function load(p, from=null, to=null, force=false){
     activePeriod = p;
     render(data, stale, p);
     if(!stale){ _lastFetchTs=Date.now(); setSt('live', relTime(Date.now())); }
+    hideUpdating();
   }
 
-  // 1. Memory hit — instant, no flicker
+  // 1. Memory hit — norm from raw snapshot to avoid double-norm
   if(!force && mem[ck] && (Date.now()-mem[ck].ts) < MEM_TTL){
-    const normed = norm(JSON.parse(JSON.stringify(mem[ck].data)), p);
-    safeRender(normed, true);
+    const _cached = mem[ck].data;
+    // Use raw snapshot if available, else fall back to stored data
+    const _src = (_cached._rawSnap && _cached._rawSnap.length)
+      ? {trendRows: _cached._rawSnap, mgrTargets:_cached.mgrTargets, mgrTargetsAll:_cached.mgrTargetsAll}
+      : (_cached._rawAllRows && _cached._rawAllRows.length)
+        ? {trendRows: _cached._rawAllRows, _rawAllRows:_cached._rawAllRows, mgrTargets:_cached.mgrTargets, mgrTargetsAll:_cached.mgrTargetsAll}
+        : _cached;
+    const normed = norm(JSON.parse(JSON.stringify(_src)), p);
+    safeRender(normed || _cached, true);
     setSt('cached', relTime(mem[ck].ts));
     if(!isCustom) schedRefresh(ck, p, from, to, token);
     return;
@@ -2753,10 +2906,15 @@ async function load(p, from=null, to=null, force=false){
   const dk = dkRead(ck);
   if(dk && !force){
     mem[ck] = {data:dk.data, ts:dk.ts};
-    safeRender(norm(JSON.parse(JSON.stringify(dk.data)), p), true);
+    // Use stored raw rows for norm() to avoid double-norm
+    const _dkSrc = (dk.data._rawAllRows && dk.data._rawAllRows.length)
+      ? {trendRows:dk.data._rawAllRows, _rawAllRows:dk.data._rawAllRows, mgrTargets:dk.data.mgrTargets, mgrTargetsAll:dk.data.mgrTargetsAll}
+      : dk.data;
+    safeRender(norm(JSON.parse(JSON.stringify(_dkSrc)), p) || dk.data, true);
     setSt('cached', relTime(dk.ts));
     showDash();
-    // Silent background refresh (no loading indicator)
+    // Background refresh with overlay
+    showUpdating('Updating Live Data…', 'Syncing latest records');
     fetchOne(p, from, to).then(d=>{
       if(!d || token!==renderToken) return;
       mem[ck]={data:d, ts:Date.now()}; dkWrite(ck, d);
@@ -2766,8 +2924,9 @@ async function load(p, from=null, to=null, force=false){
     return;
   }
 
-  // 3. Cold fetch — show subtle indicator, not a full spinner
+  // 3. Cold fetch — show overlay + blur
   setSt('fetching');
+  showUpdating('Updating Live Data…', 'Fetching latest records');
   try{
     const d = await fetchOne(p, from, to);
     if(token !== renderToken) return;
@@ -2783,6 +2942,7 @@ async function load(p, from=null, to=null, force=false){
     const delay = Math.min(RETRY_BASE * Math.pow(2, _retryCount-1), RETRY_MAX);
     const secs  = Math.round(delay/1000);
     setSt('error', `Retry in ${secs}s`);
+    hideUpdating();
     refreshTimer = setTimeout(()=>load(p, from, to, true), delay);
     showDash();
   }
@@ -2795,9 +2955,11 @@ function schedRefresh(ck, p, from, to, token){
     if(!_pageVisible || !_isOnline){ schedRefresh(ck,p,from,to,token); return; }
     if(renderToken !== token) return;
     setSt('fetching');
+    showUpdating('Updating Live Data…', 'Auto-refreshing data');
     fetchOne(p, from, to).then(d=>{
       if(!d || renderToken!==token) return;
       mem[ck]={data:d, ts:Date.now()}; dkWrite(ck, d);
+      hideUpdating();
       render(d, false, p);
       _lastFetchTs = Date.now();
       setSt('live', relTime(Date.now()));
@@ -3430,6 +3592,26 @@ function _renderTrail(){
 // ── Refresh all 3 incentive leaderboards from a row set ──
 // Called on every filter change so leaderboards always reflect
 // the current Univ → Mgr → TL drill-down context.
+// ── Top Performers from any row set ─────────────────────
+function _updateTopPerformers(rows){
+  const el = $('tlist'); if(!el) return;
+  if(!rows || !rows.length){ el.innerHTML = nd('No data for this filter'); return; }
+  const mgrMap=Object.create(null), tlMap=Object.create(null);
+  for(let i=0,L=rows.length;i<L;i++){
+    const r=rows[i];
+    const m=(r.mgr||'').toString().trim(); if(m) mgrMap[m]=(mgrMap[m]||0)+1;
+    const t=(r.tl||'').toString().trim();  if(t) tlMap[t]=(tlMap[t]||0)+1;
+  }
+  const topMgr=Object.entries(mgrMap).sort((a,b)=>b[1]-a[1]);
+  const topTL =Object.entries(tlMap).sort((a,b)=>b[1]-a[1]);
+  if(!topMgr.length && !topTL.length){ el.innerHTML=nd('No data for this filter'); return; }
+  const parts=[];
+  if(topMgr[0]) parts.push(trRow('🏆','Manager',    topMgr[0][0], topMgr[0][1], 'r1'));
+  if(topTL[0])  parts.push(trRow('🥇','Team Leader', topTL[0][0],  topTL[0][1],  'r2'));
+  if(topTL[1])  parts.push(trRow('🥈','Team Leader', topTL[1][0],  topTL[1][1],  'r3'));
+  el.innerHTML = parts.join('');
+}
+
 function _refreshIncentives(rows){
   // Counsellor incentive — rebuild from filtered counsellor data
   const counselData = buildCounselMap(rows);
@@ -3465,10 +3647,22 @@ function _applyStack(){
   // 4. Incentive leaderboards — always refresh from filtered rows
   _refreshIncentives(rows);
 
-  // 5. Breadcrumb
+  // 5. Top Performers — recompute from filtered rows
+  _updateTopPerformers(rows);
+
+  // 6. Trend Chart — recompute from filtered rows
+  _lastTrendHash = '';
+  drawTrend(rows);
+
+  // 7. Card filter-active indicators
+  $('mb')?.closest('.card')?.classList.toggle('filter-active', filterStack.some(f=>f.level==='mgr'));
+  $('tb')?.closest('.card')?.classList.toggle('filter-active', filterStack.some(f=>f.level==='tl'));
+  document.querySelector('.univ-card')?.classList.toggle('filter-active', filterStack.some(f=>f.level==='univ'));
+
+  // 8. Breadcrumb
   _renderTrail();
 
-  // 6. Sync donut visual selection
+  // 9. Sync donut visual selection
   const univInStack=filterStack.find(f=>f.level==='univ');
   const univIdx = univInStack ? UNIVS.findIndex(u=>u.k===univInStack.key) : -1;
   _activeUnivIdx = univIdx;
@@ -3516,6 +3710,23 @@ function _clearAllFilters(){
   filterCounselSection(allRows,null,null);
   // Restore all incentive leaderboards to full unfiltered data
   _refreshIncentives(allRows);
+  // Restore Top Performers
+  _updateTopPerformers(allRows);
+  // Restore Trend Chart to full period
+  _lastTrendHash='';
+  drawTrend(cached.data.allTrendRows||allRows);
+  // Restore KPIs
+  const _d=cached.data;
+  animCount($('pnet'),_d.netAdm||0);
+  animCount($('ptot'),_d.totalAdm||0);
+  animCount($('pcan'),_d.cancelAdm||0);
+  // Reset incentive leaderboard titles
+  ['incSortSub','tlIncSortSub','mgrIncSortSub'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const panel=id.replace('SortSub','');
+    const st=_incSort[panel]||{sort:'inc',dir:'desc'};
+    el.textContent='Sorted by '+(st.sort==='inc'?'incentive':'admissions')+' · '+(st.dir==='desc'?'highest first':'lowest first');
+  });
 
   // Reset all bar visual state
   document.querySelectorAll('[data-mgr],[data-tl]').forEach(r=>{
@@ -4127,7 +4338,8 @@ function renderIncLeaderboard(data, prefix, title){
   const totalEl=$(prefix+'Total');
   const chartEl=$(prefix+'Chart');
   const subEl  = document.getElementById(prefix+'SortSub');
-  if(titleEl) titleEl.textContent='💰 '+title+' Leaderboard';
+  const _fctx2=filterStack.length?' · '+filterStack.map(f=>f.name).join(' › '):'';
+  if(titleEl) titleEl.textContent='💰 '+title+' Leaderboard'+_fctx2;
   if(totalEl) totalEl.textContent='₹'+fmtInc(total);
 
   // Subtitle: show sort + active filter context
@@ -4152,7 +4364,7 @@ function renderIncLeaderboard(data, prefix, title){
     html+=`<div class="inc-row" style="animation:fadeUp .22s ease both ${i*28}ms">`;
     html+=`<div class="inc-rank ${rc}${isAsc&&i<3?' sorted-asc':''}">${ri}</div>`;
     html+=`<div class="inc-name"><span class="inc-name-main" title="${d.name}">${d.name}</span><span class="inc-name-adm">${d.count} admissions</span></div>`;
-    html+=`<div class="inc-track-wrap"><div class="inc-track"><div class="inc-bar" id="${prefix}b${i}" style="background:${grad};"></div></div><div class="inc-overlay"><span class="inc-ol-adm">${d.count} adm</span><span class="inc-ol-amt">₹${fmtInc(d.incentive)}</span></div></div>`;
+    html+=`<div class="inc-track-wrap"><div class="inc-track"><div class="inc-bar" id="${prefix}b${i}" style="background:${grad};"></div></div><div class="inc-overlay"><span class="inc-ol-adm">${d.count} adm</span><span class="inc-ol-amt">${fmtIncFull(d.incentive)}</span></div></div>`;
     html+=`<div class="inc-stats"><span class="inc-stat-amt">₹${fmtInc(d.incentive)}</span><span class="inc-stat-adm">${d.count} adm</span></div>`;
     html+=`</div>`;
   }
@@ -4169,7 +4381,14 @@ function renderIncLeaderboard(data, prefix, title){
 function drawIncLeaderboard(data){
   const withInc=data.filter(c=>c.incentive>0);
   const sec=$('incSection');
-  if(!withInc.length){ sec.style.display='none'; return; }
+  if(!withInc.length){
+    if(filterStack.length){
+      sec.style.display='block';
+      const ce=$('incChart'); if(ce) ce.innerHTML=nd('No incentive data for '+filterStack.map(f=>f.name).join(' › '));
+      $('incTotal').textContent='₹0';
+    } else { sec.style.display='none'; }
+    return;
+  }
   sec.style.display='block';
   _incRawData['inc'] = withInc.slice(); // store master copy
   const sorted = _applySort('inc', withInc);
@@ -4199,7 +4418,7 @@ function _renderCounselIncChart(sorted){
     html+=`<div class="inc-row" style="animation:fadeUp .22s ease both ${i*28}ms">`;
     html+=`<div class="inc-rank ${rc}${isAsc&&i<3?' sorted-asc':''}">${ri}</div>`;
     html+=`<div class="inc-name"><span class="inc-name-main" title="${c.name}">${c.name}</span><span class="inc-name-adm">${c.count} admissions</span></div>`;
-    html+=`<div class="inc-track-wrap"><div class="inc-track"><div class="inc-bar" id="incb${i}" style="background:${grad};"></div></div><div class="inc-overlay"><span class="inc-ol-adm">${c.count} adm</span><span class="inc-ol-amt">₹${fmtInc(c.incentive)}</span></div></div>`;
+    html+=`<div class="inc-track-wrap"><div class="inc-track"><div class="inc-bar" id="incb${i}" style="background:${grad};"></div></div><div class="inc-overlay"><span class="inc-ol-adm">${c.count} adm</span><span class="inc-ol-amt">${fmtIncFull(c.incentive)}</span></div></div>`;
     html+=`<div class="inc-stats"><span class="inc-stat-amt">₹${fmtInc(c.incentive)}</span><span class="inc-stat-adm">${c.count} adm</span></div>`;
     html+=`</div>`;
   }
@@ -4283,6 +4502,7 @@ $q('.tabs').addEventListener('click',e=>{
   t.classList.add('on');
   clearRange();
   const p=t.getAttribute('data-p');
+  showUpdating('Updating Live Data…', 'Loading '+(t.textContent.trim())+' data');
 
   // Smooth content fade-out → in on tab switch
   const dash = $('dash');
@@ -4312,6 +4532,14 @@ $q('.tabs').addEventListener('click',e=>{
     const isStale = !mem['monthly'] || (Date.now()-mem['monthly'].ts)>MEM_TTL;
     if(isStale){ delete mem['monthly']; try{localStorage.removeItem(CACHE_KEY+'monthly');}catch(e){} }
     load(p);
+  } else if(p==='all'){
+    // All Time: always force-refresh if data might be stale
+    const isStale = !mem['all'] || (Date.now()-(mem['all'].ts||0)) > MEM_TTL;
+    if(isStale){
+      delete mem['all'];
+      try{ localStorage.removeItem(CACHE_KEY+'all'); }catch(e){}
+    }
+    load('all');
   } else {
     load(p);
   }
@@ -4426,6 +4654,7 @@ $('btnApply').addEventListener('click',()=>{
   $('rangeBadge').classList.add('show');
   $('rangeBadgeTxt').textContent=fmtDisp(rStart)+' → '+fmtDisp(rEnd);
   closeCal();
+  showUpdating('Updating Live Data…', 'Loading custom date range');
   load('custom',f,t,true);
 });
 
@@ -4710,10 +4939,15 @@ function boot(){
   const dk=dkRead('all');
   if(dk && dk.data){
     try{
-      const nd=JSON.parse(JSON.stringify(dk.data));
-      mem['all']={data:nd,ts:dk.ts};
+      // Norm from raw rows to avoid double-norm on cached data
+      const _bootSrc = (dk.data._rawAllRows && dk.data._rawAllRows.length)
+        ? {trendRows:dk.data._rawAllRows, _rawAllRows:dk.data._rawAllRows, mgrTargets:dk.data.mgrTargets, mgrTargetsAll:dk.data.mgrTargetsAll}
+        : dk.data;
+      const nd = norm(JSON.parse(JSON.stringify(_bootSrc)), 'all') || dk.data;
+      mem['all']={data:nd, ts:dk.ts};
       activeCk='all'; activePeriod='all';
       render(nd, true, 'all');
+      hideUpdating();
       setSt('cached', relTime(dk.ts));
       // Background refresh: immediately if stale >5min, else after 3s
       const age=Date.now()-dk.ts;
@@ -5317,6 +5551,9 @@ if(typeof _origAnimCount === 'function'){
 })(); // end UX enhancement IIFE
 
 authInit();
+
+
+
 </script>
 </body>
 </html>
