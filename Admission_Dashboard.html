@@ -1943,6 +1943,91 @@ body.role-director #dlWrap {
 }
 #dash{transition:filter .25s ease;}
 
+
+/* ═══════════════════════════════════════
+   INCENTIVE TOTALS SUMMARY — manager/director
+═══════════════════════════════════════ */
+.inc-totals-summary{
+  margin-top:14px;margin-bottom:14px;padding:20px 22px;
+  background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(16,185,129,.05));
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;position:relative;overflow:hidden;
+}
+.inc-totals-summary::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(99,102,241,.5),rgba(16,185,129,.5),transparent);
+}
+.its-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:6px;}
+.its-head-title{font-size:14px;font-weight:900;color:#fff;letter-spacing:-.02em;}
+.its-head-sub{font-size:10px;font-weight:700;color:rgba(255,255,255,.32);letter-spacing:.08em;text-transform:uppercase;}
+
+.its-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+@media(max-width:760px){.its-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:420px){.its-grid{grid-template-columns:1fr;}}
+
+.its-card{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:14px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1),border-color .2s ease,background .2s ease;
+  position:relative;overflow:hidden;
+}
+.its-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.06);}
+.its-card::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;opacity:.6;
+}
+.its-counsel{border-color:rgba(168,85,247,.25);}
+.its-counsel::after{background:linear-gradient(90deg,#a855f7,#c084fc);}
+.its-counsel:hover{border-color:rgba(168,85,247,.45);}
+
+.its-tl{border-color:rgba(34,211,238,.25);}
+.its-tl::after{background:linear-gradient(90deg,#0891b2,#22d3ee);}
+.its-tl:hover{border-color:rgba(34,211,238,.45);}
+
+.its-mgr{border-color:rgba(99,102,241,.25);}
+.its-mgr::after{background:linear-gradient(90deg,#6366f1,#818cf8);}
+.its-mgr:hover{border-color:rgba(99,102,241,.45);}
+
+.its-grand{
+  border-color:rgba(16,185,129,.3);
+  background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(16,185,129,.04));
+}
+.its-grand::after{background:linear-gradient(90deg,#059669,#10b981,#34d399);height:3px;opacity:.8;}
+.its-grand:hover{border-color:rgba(16,185,129,.5);background:linear-gradient(135deg,rgba(16,185,129,.14),rgba(16,185,129,.06));}
+
+.its-ico{font-size:28px;flex-shrink:0;line-height:1;}
+.its-body{flex:1;min-width:0;}
+.its-lbl{
+  font-size:9px;font-weight:800;letter-spacing:.1em;
+  color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:3px;
+}
+.its-val{
+  font-size:20px;font-weight:900;line-height:1.1;
+  letter-spacing:-.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color .25s ease;
+}
+.its-counsel .its-val{color:#c084fc;}
+.its-tl .its-val{color:#22d3ee;}
+.its-mgr .its-val{color:#818cf8;}
+.its-grand .its-val{
+  background:linear-gradient(135deg,#34d399,#10b981);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  font-size:22px;
+}
+.its-meta{font-size:10px;font-weight:600;color:rgba(255,255,255,.3);margin-top:3px;}
+
+/* Role visibility */
+body.role-public  #incTotalsSummary,
+body.role-tl      #incTotalsSummary { display:none !important; }
+body.role-manager #incTotalsSummary,
+body.role-director #incTotalsSummary { display:block; }
+
 </style>
 </head>
 <body>
@@ -2269,6 +2354,47 @@ body.role-director #dlWrap {
     </div>
     <div class="c-podium-wrap" id="cPodium"></div>
     <div class="c-grid" id="cGrid"></div>
+    <!-- TOTALS SUMMARY — Manager/Director only -->
+    <div class="inc-totals-summary" id="incTotalsSummary" style="display:none;">
+      <div class="its-head">
+        <div class="its-head-title">💰 Total Incentives Summary</div>
+        <div class="its-head-sub" id="itsSub">All roles combined · Live</div>
+      </div>
+      <div class="its-grid">
+        <div class="its-card its-counsel">
+          <div class="its-ico">💼</div>
+          <div class="its-body">
+            <div class="its-lbl">Counsellor</div>
+            <div class="its-val" id="itsCounselTotal">₹0</div>
+            <div class="its-meta" id="itsCounselMeta">0 admissions</div>
+          </div>
+        </div>
+        <div class="its-card its-tl">
+          <div class="its-ico">👥</div>
+          <div class="its-body">
+            <div class="its-lbl">Team Leader</div>
+            <div class="its-val" id="itsTLTotal">₹0</div>
+            <div class="its-meta" id="itsTLMeta">0 TLs</div>
+          </div>
+        </div>
+        <div class="its-card its-mgr">
+          <div class="its-ico">🏆</div>
+          <div class="its-body">
+            <div class="its-lbl">Manager</div>
+            <div class="its-val" id="itsMgrTotal">₹0</div>
+            <div class="its-meta" id="itsMgrMeta">0 managers</div>
+          </div>
+        </div>
+        <div class="its-card its-grand">
+          <div class="its-ico">💎</div>
+          <div class="its-body">
+            <div class="its-lbl">Grand Total</div>
+            <div class="its-val" id="itsGrandTotal">₹0</div>
+            <div class="its-meta" id="itsGrandMeta">All incentives</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="inc-section" id="incSection" style="display:none;">
       <div class="inc-head">
         <div>
@@ -2372,6 +2498,7 @@ body.role-director #dlWrap {
 </div><!-- /wrap -->
 
 <script>
+
 
 
 
@@ -3622,8 +3749,62 @@ function _refreshIncentives(rows){
   drawTLIncLeaderboard(rows);
   drawMgrIncLeaderboard(rows);
 
+  // Total incentives summary (manager/director only)
+  updateTotalsSummary(rows);
+
   // Re-enforce role-based visibility (draw functions may hide sections)
   applyRoleVisibility();
+}
+
+// ── Totals Summary — sums incentives across all 3 roles ──
+function updateTotalsSummary(rows){
+  const role = currentUser ? currentUser.role : 'public';
+  if(role !== 'manager' && role !== 'director') return;
+
+  if(!rows || !rows.length){
+    $('itsCounselTotal').textContent = '₹0';
+    $('itsTLTotal').textContent      = '₹0';
+    $('itsMgrTotal').textContent     = '₹0';
+    $('itsGrandTotal').textContent   = '₹0';
+    $('itsCounselMeta').textContent  = '0 admissions';
+    $('itsTLMeta').textContent       = '0 TLs';
+    $('itsMgrMeta').textContent      = '0 managers';
+    $('itsGrandMeta').textContent    = 'No data';
+    return;
+  }
+
+  let counselTotal=0, tlTotal=0, mgrTotal=0;
+  let counselCount=0;
+  const tlSet = new Set(), mgrSet = new Set();
+
+  for(let i=0,L=rows.length;i<L;i++){
+    const r = rows[i];
+    const cInc = parseFloat(r.incentive)    || 0;
+    const tInc = parseFloat(r.tlIncentive)  || 0;
+    const mInc = parseFloat(r.mgrIncentive) || 0;
+    counselTotal += cInc;
+    tlTotal      += tInc;
+    mgrTotal     += mInc;
+    if(cInc > 0) counselCount++;
+    const tName = (r.tl||'').trim();
+    if(tName && tInc > 0) tlSet.add(tName);
+    const mName = (r.mgr||'').trim();
+    if(mName && mInc > 0) mgrSet.add(mName);
+  }
+
+  const grandTotal = counselTotal + tlTotal + mgrTotal;
+  $('itsCounselTotal').textContent = fmtIncFull(counselTotal);
+  $('itsTLTotal').textContent      = fmtIncFull(tlTotal);
+  $('itsMgrTotal').textContent     = fmtIncFull(mgrTotal);
+  $('itsGrandTotal').textContent   = fmtIncFull(grandTotal);
+  $('itsCounselMeta').textContent  = counselCount + ' counsellors';
+  $('itsTLMeta').textContent       = tlSet.size + ' team leaders';
+  $('itsMgrMeta').textContent      = mgrSet.size + ' managers';
+
+  const ctx = (typeof filterStack !== 'undefined' && filterStack.length)
+    ? filterStack.map(f=>f.name).join(' › ')
+    : 'All roles combined · Live';
+  $('itsSub').textContent = ctx;
 }
 
 // ── Apply the full stack: donut + bars + counsellor + incentives ──
@@ -4253,6 +4434,8 @@ function drawCounsel(rows){
   // Draw TL and Manager incentive leaderboards
   drawTLIncLeaderboard(rows);
   drawMgrIncLeaderboard(rows);
+  // Update totals summary for manager/director
+  updateTotalsSummary(rows);
   // Re-enforce role visibility after all sections are drawn
   applyRoleVisibility();
 }
@@ -4914,6 +5097,10 @@ function applyRoleVisibility(){
   if(tlSec)  tlSec.style.setProperty('display', showTL  ? 'block' : 'none', 'important');
   if(mgrSec) mgrSec.style.setProperty('display', showMGR ? 'block' : 'none', 'important');
 
+  // Totals summary — only manager and director see it
+  const totSec = document.getElementById('incTotalsSummary');
+  if(totSec) totSec.style.setProperty('display', showMGR ? 'block' : 'none', 'important');
+
   // Download button — only Director can see/use it
   if(dlWrap){
     dlWrap.style.setProperty('display', showDownload ? 'flex' : 'none', 'important');
@@ -5551,6 +5738,7 @@ if(typeof _origAnimCount === 'function'){
 })(); // end UX enhancement IIFE
 
 authInit();
+
 
 
 
