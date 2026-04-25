@@ -3774,8 +3774,7 @@ function updateTotalsSummary(rows){
   }
 
   let counselTotal=0, tlTotal=0, mgrTotal=0;
-  let counselCount=0;
-  const tlSet = new Set(), mgrSet = new Set();
+  const counselSet = new Set(), tlSet = new Set(), mgrSet = new Set();
 
   for(let i=0,L=rows.length;i<L;i++){
     const r = rows[i];
@@ -3785,11 +3784,13 @@ function updateTotalsSummary(rows){
     counselTotal += cInc;
     tlTotal      += tInc;
     mgrTotal     += mInc;
-    if(cInc > 0) counselCount++;
+    // Count UNIQUE counsellor names (not row count)
+    const cName = (r.counsellor||r.Counsellor||'').toString().trim();
+    if(cName && cInc > 0) counselSet.add(cName.toLowerCase());
     const tName = (r.tl||'').trim();
-    if(tName && tInc > 0) tlSet.add(tName);
+    if(tName && tInc > 0) tlSet.add(tName.toLowerCase());
     const mName = (r.mgr||'').trim();
-    if(mName && mInc > 0) mgrSet.add(mName);
+    if(mName && mInc > 0) mgrSet.add(mName.toLowerCase());
   }
 
   const grandTotal = counselTotal + tlTotal + mgrTotal;
@@ -3797,9 +3798,10 @@ function updateTotalsSummary(rows){
   $('itsTLTotal').textContent      = fmtIncFull(tlTotal);
   $('itsMgrTotal').textContent     = fmtIncFull(mgrTotal);
   $('itsGrandTotal').textContent   = fmtIncFull(grandTotal);
-  $('itsCounselMeta').textContent  = counselCount + ' counsellors';
-  $('itsTLMeta').textContent       = tlSet.size + ' team leaders';
-  $('itsMgrMeta').textContent      = mgrSet.size + ' managers';
+  $('itsCounselMeta').textContent  = counselSet.size + ' counsellor' + (counselSet.size===1?'':'s');
+  $('itsTLMeta').textContent       = tlSet.size + ' team leader' + (tlSet.size===1?'':'s');
+  $('itsMgrMeta').textContent      = mgrSet.size + ' manager' + (mgrSet.size===1?'':'s');
+  $('itsGrandMeta').textContent    = rows.length + ' admissions';
 
   const ctx = (typeof filterStack !== 'undefined' && filterStack.length)
     ? filterStack.map(f=>f.name).join(' › ')
